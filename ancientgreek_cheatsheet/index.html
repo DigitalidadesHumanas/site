@@ -2,7 +2,6 @@
 <html lang="el">
 <head>
   <meta charset="UTF-8">
-  <!-- Viewport meta tag is crucial for iPhone/mobile responsiveness and prevents auto-zoom on inputs -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     * {
@@ -10,7 +9,7 @@
     }
     body {
       font-family: monospace;
-      font-size: 14px; /* Better base readability for mobile */
+      font-size: 14px;
       margin: 0;
       padding: 0;
       background-color: #fff;
@@ -26,13 +25,28 @@
       padding: 10px;
     }
 
-    /* Clickable links styled blue with touch-friendly target areas */
+    /* Minimal loading state */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      z-index: 9999;
+    }
+
     a {
       text-decoration: none;
       color: #0066cc;
       font-weight: bold;
-      padding: 8px 4px; 
-      margin-right: 4px;
+      padding: 6px 2px;
+      margin-right: 2px;
       display: inline-block;
     }
 
@@ -76,7 +90,7 @@
     }
 
     .entry {
-      margin-bottom: 12px; /* Breathing room on mobile */
+      margin-bottom: 12px;
       white-space: normal;
       word-break: break-word;
       overflow-wrap: anywhere;
@@ -101,8 +115,8 @@
     .nav-bar {
       display: flex;
       align-items: center;
-      flex-wrap: wrap; /* Allows wrapping on very narrow screens */
-      gap: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
       flex-shrink: 0;
       padding-top: 4px;
       padding-bottom: 10px;
@@ -113,12 +127,11 @@
       margin-bottom: 8px;
     }
 
-    /* Responsive inputs for mobile */
     input[type="text"], textarea {
       width: 100%;
       max-width: 100%;
       font-family: monospace;
-      font-size: 16px; /* 16px prevents iOS Safari auto-zooming on focus */
+      font-size: 16px; /* Prevents iOS auto-zoom */
       padding: 8px;
       margin-bottom: 8px;
       border: 1px solid #ccc;
@@ -133,18 +146,40 @@
 </head>
 <body>
 
+  <div id="loading">...</div>
   <div id="app"></div>
 
   <script>
-    const PLANTILLA_DEFAULT = "@@  @@ ==  == ++  ++ ##  ##";
+    const PLANTILLA_DEFAULT = "@@  @@ ==  == ++  ++ ##  ## ((  )) }}  {{";
     const RATIO_AUREO = 1.61803398875;
+
+    let claveExpandida = null;
+    let claveEditando = null;
+    let esNuevaEntrada = false;
+    let mensajeError = "";
+    
+    // Navigation History Stack
+    let historialNavegacion = [];
+
+    // Cache computed A and B categories in memory
+    let cacheCategorias = {};
 
     function inicializarDatos() {
       if (localStorage.length === 0) {
         const keyEjemplo = "αρχαίος";
-        const valEjemplo = "@@ αρχ>fuerza,energia, dominio, gobierno|αίος, αρχ<antiguo|αίος<< @@ == χώρα, ἄρχω == ++ πρὸ πολύς Χρόνος ++ ## 123 ##";
+        const valEjemplo = "@@ αρχ>fuerza,energia, dominio, gobierno|αίος, αρχ<antiguo|αίος<< @@ == χώρα, ἄρχω == ++ πρὸ πολύς Χρόνος ++ ## 123 ## ((  )) }}  {{";
         localStorage.setItem(keyEjemplo, valEjemplo);
       }
+    }
+
+    // Strip non-Greek letters & diacritics / accents / breathing marks
+    function normalizarGriego(texto) {
+      if (!texto) return "";
+      return texto
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove accents/diacritics
+        .toLowerCase()
+        .replace(/[^α-ω]/g, ""); // keep strictly Greek alphabet characters
     }
 
     function parsearValue(valStr) {
@@ -152,8 +187,9 @@
       let isophonos = "";
       let glosa = "";
       let num = "";
+      let catA = "";
+      let catB = "";
 
-      // Regex matches capture everything between delimiters while striping out @@, ==, ++, ##
       const matchPoet = valStr.match(/@@([\s\S]*?)@@/);
       if (matchPoet) poetologico = matchPoet[1].trim();
 
@@ -166,7 +202,52 @@
       const matchNum = valStr.match(/\#\#([\s\S]*?)\#\#/);
       if (matchNum) num = matchNum[1].trim();
 
-      return { poetologico, isophonos, glosa, num };
+      const matchA = valStr.match(/\(\(([\s\S]*?)\)\)/);
+      if (matchA) catA = matchA[1].trim();
+
+      const matchB = valStr.match(/\}\}([\s\S]*?)\{\{/);
+      if (matchB) catB = matchB[1].trim();
+
+      return { poetologico, isophonos, glosa, num, catA, catB };
+    }
+
+    function calcularCategoriasAB() {
+      cacheCategorias = {};
+      const keys = [];
+      const keysNormMap = {};
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        keys.push(k);
+        keysNormMap[k] = normalizarGriego(k);
+        cacheCategorias[k] = { a: [], b: [] };
+      }
+
+      // Compute A and B matching links across all dictionary keys
+      for (let i = 0; i < keys.length; i++) {
+        const keyTarget = keys[i];
+        const normTarget = keysNormMap[keyTarget];
+        const prefixTarget = normTarget.substring(0, 3);
+
+        if (prefixTarget.length < 3) continue;
+
+        for (let j = 0; j < keys.length; j++) {
+          if (i === j) continue;
+          const keyOther = keys[j];
+          const normOther = keysNormMap[keyOther];
+
+          // Category A: Target prefix matches inside Other key string
+          if (normOther.includes(prefixTarget)) {
+            cacheCategorias[keyTarget].a.push(keyOther);
+          }
+
+          // Category B: Inverse - Other prefix matches inside Target key string
+          const prefixOther = normOther.substring(0, 3);
+          if (prefixOther.length === 3 && normTarget.includes(prefixOther)) {
+            cacheCategorias[keyTarget].b.push(keyOther);
+          }
+        }
+      }
     }
 
     function generarSufijo(n) {
@@ -193,11 +274,6 @@
       }
     }
 
-    let claveExpandida = null;
-    let claveEditando = null;
-    let esNuevaEntrada = false;
-    let mensajeError = "";
-
     function reRender() {
       const scrollContainer = document.querySelector(".pages-scroll-container");
       const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
@@ -218,6 +294,37 @@
         claveExpandida = key;
       }
       reRender();
+    }
+
+    function saltarAEntrada(targetKey) {
+      if (claveExpandida && claveExpandida !== targetKey) {
+        historialNavegacion.push(claveExpandida);
+      }
+      claveExpandida = targetKey;
+      reRender();
+
+      // Auto-scroll target entry into view
+      setTimeout(() => {
+        const el = document.getElementById("entry-" + targetKey);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
+    }
+
+    function volverAtras() {
+      if (historialNavegacion.length > 0) {
+        const prevKey = historialNavegacion.pop();
+        claveExpandida = prevKey;
+        reRender();
+
+        setTimeout(() => {
+          const el = document.getElementById("entry-" + prevKey);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 50);
+      }
     }
 
     function iniciarEdicion(key) {
@@ -257,7 +364,7 @@
       const tieneNum = /\#\#[\s\S]*?\#\#/.test(valInput);
 
       if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
-        mensajeError = "El valor no cumple con el formato requerido: @@ ... @@ == ... == ++ ... ++ ## ... ##";
+        mensajeError = "El valor no cumple con el formato requerido.";
         reRender();
         return;
       }
@@ -271,6 +378,9 @@
       claveExpandida = keyInput;
       esNuevaEntrada = false;
       mensajeError = "";
+      
+      // Recompute dynamic categories when data changes
+      calcularCategoriasAB();
       reRender();
     }
 
@@ -279,6 +389,8 @@
         localStorage.removeItem(key);
         if (claveExpandida === key) claveExpandida = null;
         if (claveEditando === key) claveEditando = null;
+        
+        calcularCategoriasAB();
         reRender();
       }
     }
@@ -321,6 +433,7 @@
           }
         });
 
+        calcularCategoriasAB();
         reRender();
       };
 
@@ -377,6 +490,7 @@
               }
             }
           }
+          calcularCategoriasAB();
           reRender();
         } catch (err) {
           alert("Error al procesar el JSON del diccionario: " + err.message);
@@ -428,6 +542,11 @@
       return Math.max(1, cols);
     }
 
+    function renderizarEnlacesLista(arrayKeys) {
+      if (!arrayKeys || arrayKeys.length === 0) return "";
+      return arrayKeys.map(k => `<a href="javascript:saltarAEntrada('${k}')">${k}</a>`).join(" | ");
+    }
+
     function obtenerHTML() {
       let html = "";
 
@@ -473,7 +592,7 @@
         let peso = 1;
 
         let renderFunc = (k) => {
-          let itemHtml = "<div class=\"entry\">";
+          let itemHtml = `<div class="entry" id="entry-${k}">`;
           itemHtml += `<a href="javascript:eliminarEntrada('${k}')">[X]</a> `;
           itemHtml += `<a href="javascript:iniciarEdicion('${k}')">[E]</a> `;
           itemHtml += `<a href="javascript:toggleExpandir('${k}')"><span>${k}</span></a>`;
@@ -481,12 +600,20 @@
           if (estaExpandido) {
             const rawVal = localStorage.getItem(k) || "";
             const parsed = parsearValue(rawVal);
+            
+            const dynA = cacheCategorias[k] ? cacheCategorias[k].a : [];
+            const dynB = cacheCategorias[k] ? cacheCategorias[k].b : [];
+
+            const renderA = renderizarEnlacesLista(dynA) || parsed.catA;
+            const renderB = renderizarEnlacesLista(dynB) || parsed.catB;
 
             itemHtml += "<div class=\"seccion\">";
             itemHtml += `<p>${parsed.poetologico}</p>`;
             itemHtml += `<p>${parsed.isophonos}</p>`;
             itemHtml += `<p>${parsed.glosa}</p>`;
             itemHtml += `<p>${parsed.num}</p>`;
+            itemHtml += `<p>(( ${renderA} ))</p>`;
+            itemHtml += `<p>}} ${renderB} {{</p>`;
             itemHtml += "</div>";
           }
           itemHtml += "</div>";
@@ -494,7 +621,7 @@
         };
 
         if (estaExpandido) {
-          peso += 4;
+          peso += 6;
         }
 
         itemsProcesados.push({
@@ -543,13 +670,11 @@
 
           for (let cIdx = 0; cIdx < numCols; cIdx++) {
             html += "<div class=\"column\">";
-            
             if (colsPagina[cIdx]) {
               colsPagina[cIdx].forEach(item => {
                 html += item.html;
               });
             }
-
             html += "</div>";
           }
 
@@ -561,6 +686,9 @@
       html += "</div>";
 
       html += "<div class=\"nav-bar\">";
+      if (historialNavegacion.length > 0) {
+        html += "<a href=\"javascript:volverAtras()\">[&lt;] BACK</a> ";
+      }
       html += "<a href=\"javascript:abrirSelectorArchivo()\">[I] IMPORT TXT</a> ";
       html += "<a href=\"javascript:abrirSelectorDiccionario()\">[D] DICT JSON</a> ";
       html += "<a href=\"javascript:exportarTXT()\">[E] EXPORT TXT</a>";
@@ -576,8 +704,20 @@
       reRender();
     });
 
-    inicializarDatos();
-    reRender();
+    // Loading process with simple 3 dots centered screen
+    window.addEventListener('DOMContentLoaded', () => {
+      inicializarDatos();
+
+      setTimeout(() => {
+        calcularCategoriasAB();
+        reRender();
+        
+        const loader = document.getElementById("loading");
+        if (loader) {
+          loader.style.display = "none";
+        }
+      }, 50);
+    });
   </script>
 
 </body>
