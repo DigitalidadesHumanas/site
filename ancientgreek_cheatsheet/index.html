@@ -1,724 +1,624 @@
 <!DOCTYPE html>
-<html lang="el">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Frequency Counter</title>
   <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent-bg: #f1f5f9;
+      --bar-fill: #bfdbfe;
+      --radius: 8px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
     * {
       box-sizing: border-box;
-    }
-    body {
-      font-family: monospace;
-      font-size: 14px;
       margin: 0;
       padding: 0;
-      background-color: #fff;
-      color: #000;
-      overflow: hidden;
     }
 
-    #app {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-    }
-
-    /* Minimal loading state */
-    #loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: #fff;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 2rem 1rem;
       display: flex;
       justify-content: center;
-      align-items: center;
-      font-size: 24px;
-      font-weight: bold;
-      z-index: 9999;
     }
 
-    a {
-      text-decoration: none;
-      color: #0066cc;
-      font-weight: bold;
-      padding: 6px 2px;
-      margin-right: 2px;
-      display: inline-block;
-    }
-
-    a:visited {
-      color: #0066cc;
-    }
-
-    a:active {
-      color: #004499;
-    }
-
-    .top-bar {
-      margin-bottom: 6px;
-      flex-shrink: 0;
-    }
-
-    .pages-scroll-container {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      margin-bottom: 6px;
-    }
-
-    .page-sheet {
+    .container {
       width: 100%;
+      max-width: 900px;
       display: flex;
       flex-direction: column;
+      gap: 1.5rem;
     }
 
-    .dictionary-grid {
-      flex: 1;
-      display: grid;
-      gap: 0 10px;
-      overflow: hidden;
+    header {
+      text-align: center;
+      margin-bottom: 0.5rem;
     }
 
-    .column {
+    header h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    header p {
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .textarea-group {
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      gap: 0.5rem;
     }
 
-    .entry {
-      margin-bottom: 12px;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: anywhere;
-      line-height: 1.3;
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-main);
     }
 
-    .seccion {
-      margin-top: 4px;
-      margin-bottom: 8px;
-      padding-left: 8px;
+    textarea {
+      width: 100%;
+      height: 180px;
+      padding: 0.75rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s ease;
     }
 
-    .seccion p {
-      margin: 0 0 4px 0;
-      padding: 0;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: anywhere;
-      line-height: 1.3;
+    textarea:focus {
+      border-color: var(--primary);
     }
 
-    .nav-bar {
+    .controls {
       display: flex;
-      align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
-      flex-shrink: 0;
-      padding-top: 4px;
-      padding-bottom: 10px;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
     }
 
-    .error {
-      color: red;
-      margin-bottom: 8px;
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
     }
 
-    input[type="text"], textarea {
+    .checkbox-group input {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn {
+      background-color: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.6rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-box {
+      background-color: var(--accent-bg);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      text-align: center;
+    }
+
+    .stat-box .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-box .label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    .results-table {
       width: 100%;
-      max-width: 100%;
-      font-family: monospace;
-      font-size: 16px; /* Prevents iOS auto-zoom */
-      padding: 8px;
-      margin-bottom: 8px;
-      border: 1px solid #ccc;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+    }
+
+    .results-table th {
+      background-color: var(--accent-bg);
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .results-table tr:not(:last-child) td {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .bar-cell {
+      width: 40%;
+    }
+
+    .bar-container {
+      width: 100%;
+      background-color: var(--accent-bg);
       border-radius: 4px;
+      height: 12px;
+      overflow: hidden;
     }
-    
-    .edit-container {
-      width: 100%;
-      margin-bottom: 15px;
+
+    .bar-fill {
+      height: 100%;
+      background-color: var(--primary);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem 0;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 1rem;
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .links-group {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .action-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .action-link:hover {
+      text-decoration: underline;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
 
-  <div id="loading">...</div>
-  <div id="app"></div>
+  <div class="container">
+    <header>
+      <h1>Word Frequency Counter</h1>
+      <p>Analyze text and find the most common words in real-time</p>
+    </header>
+
+    <div class="card">
+      <div class="textarea-group">
+        <label for="textInput">Enter or Paste Your Text</label>
+        <textarea id="textInput" placeholder="Type or paste text here..."></textarea>
+      </div>
+
+      <div class="controls">
+        <div style="display: flex; gap: 1.25rem; flex-wrap: wrap;">
+          <label class="checkbox-group">
+            <input type="checkbox" id="ignoreCase" checked>
+            Ignore Case
+          </label>
+          <label class="checkbox-group">
+            <input type="checkbox" id="ignoreStopwords">
+            Exclude Common Words (the, is, and...)
+          </label>
+        </div>
+        <button class="btn" id="clearBtn">Clear Text</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stats-summary">
+        <div class="stat-box">
+          <div class="value" id="totalWords">0</div>
+          <div class="label">Total Words</div>
+        </div>
+        <div class="stat-box">
+          <div class="value" id="uniqueWords">0</div>
+          <div class="label">Unique Words</div>
+        </div>
+        <div class="stat-box">
+          <div class="value" id="totalChars">0</div>
+          <div class="label">Characters</div>
+        </div>
+      </div>
+
+      <div id="resultsContainer">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th style="width: 10%;">Rank</th>
+              <th style="width: 35%;">Word</th>
+              <th style="width: 15%;">Count</th>
+              <th class="bar-cell">Frequency</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Results populated via JS -->
+          </tbody>
+        </table>
+        <div id="emptyState" class="empty-state">
+          Enter text above to display word frequency analysis.
+        </div>
+      </div>
+
+      <footer>
+        <div class="links-group">
+          <a href="#" id="importLink" class="action-link">[I] Importar</a>
+          <a href="#" id="dictLink" class="action-link">[D] Add Dictionary</a>
+        </div>
+        <input type="file" id="fileInput" accept=".txt" class="hidden">
+        <input type="file" id="dictInput" accept=".json" class="hidden">
+        <button class="btn" id="exportBtn">Exportar</button>
+      </footer>
+    </div>
+  </div>
 
   <script>
-    const PLANTILLA_DEFAULT = "@@  @@ ==  == ++  ++ ##  ## ((  )) }}  {{";
-    const RATIO_AUREO = 1.61803398875;
-
-    let claveExpandida = null;
-    let claveEditando = null;
-    let esNuevaEntrada = false;
-    let mensajeError = "";
-    
-    // Navigation History Stack
-    let historialNavegacion = [];
-
-    // Cache computed A and B categories in memory
-    let cacheCategorias = {};
-
-    function inicializarDatos() {
-      if (localStorage.length === 0) {
-        const keyEjemplo = "αρχαίος";
-        const valEjemplo = "@@ αρχ>fuerza,energia, dominio, gobierno|αίος, αρχ<antiguo|αίος<< @@ == χώρα, ἄρχω == ++ πρὸ πολύς Χρόνος ++ ## 123 ## ((  )) }}  {{";
-        localStorage.setItem(keyEjemplo, valEjemplo);
-      }
-    }
-
-    // Strip non-Greek letters & diacritics / accents / breathing marks
-    function normalizarGriego(texto) {
-      if (!texto) return "";
-      return texto
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // remove accents/diacritics
-        .toLowerCase()
-        .replace(/[^α-ω]/g, ""); // keep strictly Greek alphabet characters
-    }
-
-    function parsearValue(valStr) {
-      let poetologico = "";
-      let isophonos = "";
-      let glosa = "";
-      let num = "";
-      let catA = "";
-      let catB = "";
-
-      const matchPoet = valStr.match(/@@([\s\S]*?)@@/);
-      if (matchPoet) poetologico = matchPoet[1].trim();
-
-      const matchIso = valStr.match(/==([\s\S]*?)==/);
-      if (matchIso) isophonos = matchIso[1].trim();
-
-      const matchGlosa = valStr.match(/\+\+([\s\S]*?)\+\+/);
-      if (matchGlosa) glosa = matchGlosa[1].trim();
-
-      const matchNum = valStr.match(/\#\#([\s\S]*?)\#\#/);
-      if (matchNum) num = matchNum[1].trim();
-
-      const matchA = valStr.match(/\(\(([\s\S]*?)\)\)/);
-      if (matchA) catA = matchA[1].trim();
-
-      const matchB = valStr.match(/\}\}([\s\S]*?)\{\{/);
-      if (matchB) catB = matchB[1].trim();
-
-      return { poetologico, isophonos, glosa, num, catA, catB };
-    }
-
-    function calcularCategoriasAB() {
-      cacheCategorias = {};
-      const keys = [];
-      const keysNormMap = {};
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        keys.push(k);
-        keysNormMap[k] = normalizarGriego(k);
-        cacheCategorias[k] = { a: [], b: [] };
-      }
-
-      // Compute A and B matching links across all dictionary keys
-      for (let i = 0; i < keys.length; i++) {
-        const keyTarget = keys[i];
-        const normTarget = keysNormMap[keyTarget];
-        const prefixTarget = normTarget.substring(0, 3);
-
-        if (prefixTarget.length < 3) continue;
-
-        for (let j = 0; j < keys.length; j++) {
-          if (i === j) continue;
-          const keyOther = keys[j];
-          const normOther = keysNormMap[keyOther];
-
-          // Category A: Target prefix matches inside Other key string
-          if (normOther.includes(prefixTarget)) {
-            cacheCategorias[keyTarget].a.push(keyOther);
-          }
-
-          // Category B: Inverse - Other prefix matches inside Target key string
-          const prefixOther = normOther.substring(0, 3);
-          if (prefixOther.length === 3 && normTarget.includes(prefixOther)) {
-            cacheCategorias[keyTarget].b.push(keyOther);
-          }
-        }
-      }
-    }
-
-    function generarSufijo(n) {
-      let resultado = "";
-      while (n >= 0) {
-        resultado = String.fromCharCode((n % 26) + 65) + resultado;
-        n = Math.floor(n / 26) - 1;
-      }
-      return "_" + resultado;
-    }
-
-    function obtenerClaveUnica(baseKey) {
-      if (localStorage.getItem(baseKey) === null) {
-        return baseKey;
-      }
-      let i = 0;
-      while (true) {
-        const sufijo = generarSufijo(i);
-        const nuevaClave = baseKey + sufijo;
-        if (localStorage.getItem(nuevaClave) === null) {
-          return nuevaClave;
-        }
-        i++;
-      }
-    }
-
-    function reRender() {
-      const scrollContainer = document.querySelector(".pages-scroll-container");
-      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
-      
-      const appDiv = document.getElementById("app");
-      appDiv.innerHTML = obtenerHTML();
-
-      const newScrollContainer = document.querySelector(".pages-scroll-container");
-      if (newScrollContainer) {
-        newScrollContainer.scrollTop = scrollTop;
-      }
-    }
-
-    function toggleExpandir(key) {
-      if (claveExpandida === key) {
-        claveExpandida = null;
-      } else {
-        claveExpandida = key;
-      }
-      reRender();
-    }
-
-    function saltarAEntrada(targetKey) {
-      if (claveExpandida && claveExpandida !== targetKey) {
-        historialNavegacion.push(claveExpandida);
-      }
-      claveExpandida = targetKey;
-      reRender();
-
-      // Auto-scroll target entry into view
-      setTimeout(() => {
-        const el = document.getElementById("entry-" + targetKey);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      }, 50);
-    }
-
-    function volverAtras() {
-      if (historialNavegacion.length > 0) {
-        const prevKey = historialNavegacion.pop();
-        claveExpandida = prevKey;
-        reRender();
-
-        setTimeout(() => {
-          const el = document.getElementById("entry-" + prevKey);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }, 50);
-      }
-    }
-
-    function iniciarEdicion(key) {
-      claveEditando = key;
-      esNuevaEntrada = false;
-      mensajeError = "";
-      reRender();
-    }
-
-    function iniciarNuevaEntrada() {
-      claveEditando = "";
-      esNuevaEntrada = true;
-      mensajeError = "";
-      reRender();
-    }
-
-    function cancelarEdicion() {
-      claveEditando = null;
-      esNuevaEntrada = false;
-      mensajeError = "";
-      reRender();
-    }
-
-    function guardarEntrada() {
-      const keyInput = document.getElementById("input-key").value.trim();
-      const valInput = document.getElementById("input-val").value.trim();
-
-      if (!keyInput) {
-        mensajeError = "La clave no puede estar vacía.";
-        reRender();
-        return;
-      }
-
-      const tienePoet = /@@[\s\S]*?@@/.test(valInput);
-      const tieneIso = /==[\s\S]*?==/.test(valInput);
-      const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(valInput);
-      const tieneNum = /\#\#[\s\S]*?\#\#/.test(valInput);
-
-      if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
-        mensajeError = "El valor no cumple con el formato requerido.";
-        reRender();
-        return;
-      }
-
-      if (!esNuevaEntrada && claveEditando !== keyInput) {
-        localStorage.removeItem(claveEditando);
-      }
-
-      localStorage.setItem(keyInput, valInput);
-      claveEditando = null;
-      claveExpandida = keyInput;
-      esNuevaEntrada = false;
-      mensajeError = "";
-      
-      // Recompute dynamic categories when data changes
-      calcularCategoriasAB();
-      reRender();
-    }
-
-    function eliminarEntrada(key) {
-      if (confirm(`¿Eliminar la entrada "${key}"?`)) {
-        localStorage.removeItem(key);
-        if (claveExpandida === key) claveExpandida = null;
-        if (claveEditando === key) claveEditando = null;
-        
-        calcularCategoriasAB();
-        reRender();
-      }
-    }
-
-    function abrirSelectorArchivo() {
-      document.getElementById("input-file-txt").click();
-    }
-
-    function abrirSelectorDiccionario() {
-      document.getElementById("input-file-json").click();
-    }
-
-    function importarDesdeArchivo(event) {
-      const archivo = event.target.files[0];
-      if (!archivo) return;
-
-      const lector = new FileReader();
-      lector.onload = function(e) {
-        const contenido = e.target.result;
-        const lineas = contenido.split("\n");
-
-        lineas.forEach(linea => {
-          const lineaLimpia = linea.trim();
-          if (!lineaLimpia) return;
-
-          const posSeparador = lineaLimpia.indexOf(":");
-          if (posSeparador !== -1) {
-            const keyBase = lineaLimpia.substring(0, posSeparador).trim();
-            const val = lineaLimpia.substring(posSeparador + 1).trim();
-
-            const tienePoet = /@@[\s\S]*?@@/.test(val);
-            const tieneIso = /==[\s\S]*?==/.test(val);
-            const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(val);
-            const tieneNum = /\#\#[\s\S]*?\#\#/.test(val);
-
-            if (keyBase && tienePoet && tieneIso && tieneGlosa && tieneNum) {
-              const claveFinal = obtenerClaveUnica(keyBase);
-              localStorage.setItem(claveFinal, val);
-            }
-          }
-        });
-
-        calcularCategoriasAB();
-        reRender();
-      };
-
-      lector.readAsText(archivo, "UTF-8");
-    }
-
-    function importarDiccionarioJSON(event) {
-      const archivo = event.target.files[0];
-      if (!archivo) return;
-
-      const lector = new FileReader();
-      lector.onload = function(e) {
-        try {
-          let texto = e.target.result.trim();
-          if (texto.startsWith("},")) {
-            texto = "{" + texto.substring(2);
-          } else if (!texto.startsWith("{")) {
-            texto = "{" + texto;
-          }
-          if (!texto.endsWith("}")) {
-            texto = texto + "}";
-          }
-
-          const dictData = JSON.parse(texto);
-
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            const keyLimpia = key.split("_")[0];
-
-            let entry = dictData[keyLimpia] || dictData[key];
-            if (!entry) {
-              for (const k in dictData) {
-                if (dictData[k].lemma === keyLimpia || dictData[k].lemma_normalized === keyLimpia) {
-                  entry = dictData[k];
-                  break;
-                }
-              }
-            }
-
-            if (entry && entry.definitions && entry.definitions.length > 0) {
-              const defsUnidas = entry.definitions.join(" | ");
-              const valStr = localStorage.getItem(key);
-
-              if (valStr) {
-                const nuevoVal = valStr.replace(/\+\+([\s\S]*?)\+\+/, (match, p1) => {
-                  const glosaLimpia = p1.trim();
-                  if (glosaLimpia.length > 0) {
-                    return `++ ${glosaLimpia} | ${defsUnidas} ++`;
-                  } else {
-                    return `++ ${defsUnidas} ++`;
-                  }
-                });
-                localStorage.setItem(key, nuevoVal);
-              }
-            }
-          }
-          calcularCategoriasAB();
-          reRender();
-        } catch (err) {
-          alert("Error al procesar el JSON del diccionario: " + err.message);
-        }
-      };
-
-      lector.readAsText(archivo, "UTF-8");
-    }
-
-    function exportarTXT() {
-      const keys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        keys.push(localStorage.key(i));
-      }
-      keys.sort((a, b) => a.localeCompare(b, 'el'));
-
-      let contenido = "";
-      keys.forEach(key => {
-        const val = localStorage.getItem(key);
-        contenido += `${key} : ${val}\n`;
-      });
-
-      const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "diccionario.txt";
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function calcularCapacidadColumna() {
-      const altoPantalla = window.innerHeight;
-      const altoDisponible = altoPantalla - 110;
-      const altoLinea = 22;
-      const lineasTotales = Math.floor(altoDisponible / altoLinea);
-      return Math.max(1, lineasTotales - 2);
-    }
-
-    function calcularNumColumnas() {
-      const anchoPantalla = window.innerWidth;
-      if (anchoPantalla < 600) {
-        return 1;
-      }
-      const altoPantalla = window.innerHeight;
-      const altoDisponible = altoPantalla - 110;
-      const anchoColumnaIdeada = altoDisponible / RATIO_AUREO;
-      const cols = Math.floor((anchoPantalla - 20) / anchoColumnaIdeada);
-      return Math.max(1, cols);
-    }
-
-    function renderizarEnlacesLista(arrayKeys) {
-      if (!arrayKeys || arrayKeys.length === 0) return "";
-      return arrayKeys.map(k => `<a href="javascript:saltarAEntrada('${k}')">${k}</a>`).join(" | ");
-    }
-
-    function obtenerHTML() {
-      let html = "";
-
-      html += "<div class=\"top-bar\">";
-      html += "<a href=\"javascript:iniciarNuevaEntrada()\">[+] AÑADIR</a>";
-      html += "</div>";
-
-      if (claveEditando !== null) {
-        let valActual = esNuevaEntrada ? "" : (localStorage.getItem(claveEditando) || "");
-        
-        const tienePoet = /@@[\s\S]*?@@/.test(valActual);
-        const tieneIso = /==[\s\S]*?==/.test(valActual);
-        const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(valActual);
-        const tieneNum = /\#\#[\s\S]*?\#\#/.test(valActual);
-
-        if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
-          valActual = PLANTILLA_DEFAULT;
-        }
-
-        html += "<div class=\"edit-container\">";
-        if (mensajeError) {
-          html += `<div class="error">${mensajeError}</div>`;
-        }
-        html += `<input type="text" id="input-key" value="${claveEditando}" placeholder="Clave">`;
-        html += `<textarea id="input-val" rows="4">${valActual}</textarea>`;
-        html += "<br><a href=\"javascript:guardarEntrada()\">[Guardar]</a> ";
-        html += "<a href=\"javascript:cancelarEdicion()\">[Cancelar]</a>";
-        html += "</div>";
-      }
-
-      const keys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        keys.push(localStorage.key(i));
-      }
-      keys.sort((a, b) => a.localeCompare(b, 'el'));
-
-      const lineasPorColumna = calcularCapacidadColumna();
-      const numCols = calcularNumColumnas();
-
-      let itemsProcesados = [];
-      keys.forEach(key => {
-        const estaExpandido = (key === claveExpandida);
-        let peso = 1;
-
-        let renderFunc = (k) => {
-          let itemHtml = `<div class="entry" id="entry-${k}">`;
-          itemHtml += `<a href="javascript:eliminarEntrada('${k}')">[X]</a> `;
-          itemHtml += `<a href="javascript:iniciarEdicion('${k}')">[E]</a> `;
-          itemHtml += `<a href="javascript:toggleExpandir('${k}')"><span>${k}</span></a>`;
-
-          if (estaExpandido) {
-            const rawVal = localStorage.getItem(k) || "";
-            const parsed = parsearValue(rawVal);
-            
-            const dynA = cacheCategorias[k] ? cacheCategorias[k].a : [];
-            const dynB = cacheCategorias[k] ? cacheCategorias[k].b : [];
-
-            const renderA = renderizarEnlacesLista(dynA) || parsed.catA;
-            const renderB = renderizarEnlacesLista(dynB) || parsed.catB;
-
-            itemHtml += "<div class=\"seccion\">";
-            itemHtml += `<p>${parsed.poetologico}</p>`;
-            itemHtml += `<p>${parsed.isophonos}</p>`;
-            itemHtml += `<p>${parsed.glosa}</p>`;
-            itemHtml += `<p>${parsed.num}</p>`;
-            itemHtml += `<p>(( ${renderA} ))</p>`;
-            itemHtml += `<p>}} ${renderB} {{</p>`;
-            itemHtml += "</div>";
-          }
-          itemHtml += "</div>";
-          return itemHtml;
+    const stopWords = new Set([
+      "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", 
+      "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", 
+      "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", 
+      "down", "during", "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", 
+      "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", 
+      "him", "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", 
+      "isn't", "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself", 
+      "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours", 
+      "ourselves", "out", "over", "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", 
+      "shouldn't", "so", "some", "such", "than", "that", "that's", "the", "their", "theirs", "them", 
+      "themselves", "then", "there", "there's", "these", "they", "they'd", "they'll", "they're", "they've", 
+      "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", 
+      "we'd", "we'll", "we're", "we've", "were", "weren't", "what", "what's", "when", "when's", "where", 
+      "where's", "which", "while", "who", "who's", "whom", "why", "why's", "with", "won't", "would", 
+      "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"
+    ]);
+
+    const textInput = document.getElementById('textInput');
+    const ignoreCaseToggle = document.getElementById('ignoreCase');
+    const ignoreStopwordsToggle = document.getElementById('ignoreStopwords');
+    const clearBtn = document.getElementById('clearBtn');
+
+    const totalWordsEl = document.getElementById('totalWords');
+    const uniqueWordsEl = document.getElementById('uniqueWords');
+    const totalCharsEl = document.getElementById('totalChars');
+    const tableBody = document.getElementById('tableBody');
+    const emptyState = document.getElementById('emptyState');
+    const resultsTable = document.getElementById('resultsTable');
+
+    const importLink = document.getElementById('importLink');
+    const fileInput = document.getElementById('fileInput');
+    const dictLink = document.getElementById('dictLink');
+    const dictInput = document.getElementById('dictInput');
+    const exportBtn = document.getElementById('exportBtn');
+
+    let currentSortedWords = [];
+    let dictionaryData = null;
+
+    function parseWordPattern(word) {
+      const match = word.match(/^(?:@@(.*?)@@)?(?:\s*==\s*(.*?)\s*==)?(?:\s*\+\+\s*(.*?)\s*\+\+)?(?:\s*##\s*(\d+)\s*##)?$/);
+      if (match) {
+        return {
+          atSection: match[1] || '',
+          eqSection: match[2] || '',
+          defSection: match[3] || '',
+          numSection: match[4] || ''
         };
-
-        if (estaExpandido) {
-          peso += 6;
-        }
-
-        itemsProcesados.push({
-          key: key,
-          peso: peso,
-          html: renderFunc(key)
-        });
-      });
-
-      let columnasPaginadas = [];
-      let colActual = [];
-      let pesoColActual = 0;
-
-      itemsProcesados.forEach(item => {
-        if (pesoColActual + item.peso > lineasPorColumna && colActual.length > 0) {
-          columnasPaginadas.push(colActual);
-          colActual = [];
-          pesoColActual = 0;
-        }
-        colActual.push(item);
-        pesoColActual += item.peso;
-      });
-      if (colActual.length > 0) {
-        columnasPaginadas.push(colActual);
       }
-
-      let paginas = [];
-      for (let i = 0; i < columnasPaginadas.length; i += numCols) {
-        paginas.push(columnasPaginadas.slice(i, i + numCols));
-      }
-
-      html += "<div class=\"pages-scroll-container\">";
-
-      if (paginas.length === 0) {
-        html += "<div class=\"page-sheet\">";
-        html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
-        for (let c = 0; c < numCols; c++) {
-          html += "<div class=\"column\"></div>";
-        }
-        html += "</div>";
-        html += "</div>";
-      } else {
-        paginas.forEach((colsPagina) => {
-          html += "<div class=\"page-sheet\">";
-          html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
-
-          for (let cIdx = 0; cIdx < numCols; cIdx++) {
-            html += "<div class=\"column\">";
-            if (colsPagina[cIdx]) {
-              colsPagina[cIdx].forEach(item => {
-                html += item.html;
-              });
-            }
-            html += "</div>";
-          }
-
-          html += "</div>";
-          html += "</div>";
-        });
-      }
-
-      html += "</div>";
-
-      html += "<div class=\"nav-bar\">";
-      if (historialNavegacion.length > 0) {
-        html += "<a href=\"javascript:volverAtras()\">[&lt;] BACK</a> ";
-      }
-      html += "<a href=\"javascript:abrirSelectorArchivo()\">[I] IMPORT TXT</a> ";
-      html += "<a href=\"javascript:abrirSelectorDiccionario()\">[D] DICT JSON</a> ";
-      html += "<a href=\"javascript:exportarTXT()\">[E] EXPORT TXT</a>";
-      html += "</div>";
-
-      html += "<input type=\"file\" id=\"input-file-txt\" accept=\".txt\" style=\"display:none;\" onchange=\"importarDesdeArchivo(event)\">";
-      html += "<input type=\"file\" id=\"input-file-json\" accept=\".json,text/plain\" style=\"display:none;\" onchange=\"importarDiccionarioJSON(event)\">";
-
-      return html;
+      return { atSection: '', eqSection: '', defSection: word, numSection: '' };
     }
 
-    window.addEventListener('resize', () => {
-      reRender();
+    function formatWordPattern(at, eq, def, num) {
+      let result = '';
+      if (at) result += `@@ ${at} @@ `;
+      if (eq) result += `== ${eq} == `;
+      result += `++ ${def} ++`;
+      if (num) result += ` ## ${num} ##`;
+      return result;
+    }
+
+    function analyzeText() {
+      const rawText = textInput.value;
+      const ignoreCase = ignoreCaseToggle.checked;
+      const ignoreStopwords = ignoreStopwordsToggle.checked;
+
+      totalCharsEl.textContent = rawText.length.toLocaleString();
+
+      if (!rawText.trim()) {
+        totalWordsEl.textContent = '0';
+        uniqueWordsEl.textContent = '0';
+        tableBody.innerHTML = '';
+        resultsTable.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        currentSortedWords = [];
+        return;
+      }
+
+      // Extract words handling unicode letters, apostrophes, pattern markers, and trailing integer
+      const words = rawText.match(/(?:@@.*?@@\s*)?(?:==.*?==\s*)?(?:\+\+.*?\+\+\s*)?[\p{L}\p{N}']+(?:\s*#\s*\d+)?(?:\s*##\s*\d+\s*##)?/gu) || [];
+
+      totalWordsEl.textContent = words.length.toLocaleString();
+
+      const frequencyMap = new Map();
+
+      words.forEach(rawWord => {
+        let word = ignoreCase ? rawWord.toLowerCase() : rawWord;
+        
+        // Strip leading/trailing single quotes from punctuation matching
+        word = word.replace(/^'+|'+$/g, '');
+        if (!word) return;
+
+        const checkWord = word.toLowerCase();
+        if (ignoreStopwords && stopWords.has(checkWord)) {
+          return;
+        }
+
+        frequencyMap.set(word, (frequencyMap.get(word) || 0) + 1);
+      });
+
+      uniqueWordsEl.textContent = frequencyMap.size.toLocaleString();
+
+      currentSortedWords = Array.from(frequencyMap.entries()).sort((a, b) => b[1] - a[1]);
+
+      if (dictionaryData) {
+        applyDictionary();
+      } else {
+        renderTable(currentSortedWords);
+      }
+    }
+
+    function applyDictionary() {
+      if (!dictionaryData || currentSortedWords.length === 0) return;
+
+      currentSortedWords = currentSortedWords.map(([wordKey, count]) => {
+        const parts = parseWordPattern(wordKey);
+        
+        // Find matching lemma key in dictionary
+        let matchedDictEntry = null;
+        for (const dictKey in dictionaryData) {
+          const entry = dictionaryData[dictKey];
+          if (entry && (entry.lemma === wordKey || entry.lemma_normalized === wordKey || dictKey === wordKey)) {
+            matchedDictEntry = entry;
+            break;
+          }
+        }
+
+        if (matchedDictEntry && matchedDictEntry.definitions) {
+          const defsJoined = matchedDictEntry.definitions.join(' | ');
+          const updatedDef = parts.defSection ? `${parts.defSection} ${defsJoined}` : defsJoined;
+          const formattedWord = formatWordPattern(parts.atSection, parts.eqSection, updatedDef, parts.numSection);
+          return [formattedWord, count];
+        }
+
+        return [wordKey, count];
+      });
+
+      renderTable(currentSortedWords);
+    }
+
+    function renderTable(sortedWords) {
+      tableBody.innerHTML = '';
+
+      if (sortedWords.length === 0) {
+        resultsTable.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        emptyState.textContent = 'No matching words found with current filter settings.';
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      resultsTable.classList.remove('hidden');
+
+      const maxCount = sortedWords[0][1];
+      const topWords = sortedWords.slice(0, 50); // Display top 50
+
+      topWords.forEach(([word, count], index) => {
+        const percentage = Math.round((count / maxCount) * 100);
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td><strong>${escapeHtml(word)}</strong></td>
+          <td>${count.toLocaleString()}</td>
+          <td class="bar-cell">
+            <div class="bar-container">
+              <div class="bar-fill" style="width: ${percentage}%;"></div>
+            </div>
+          </td>
+        `;
+
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Import TXT functionality
+    importLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      fileInput.click();
     });
 
-    // Loading process with simple 3 dots centered screen
-    window.addEventListener('DOMContentLoaded', () => {
-      inicializarDatos();
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-      setTimeout(() => {
-        calcularCategoriasAB();
-        reRender();
-        
-        const loader = document.getElementById("loading");
-        if (loader) {
-          loader.style.display = "none";
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const lines = evt.target.result.split(/\r?\n/);
+        const frequencyMap = new Map();
+        let totalCount = 0;
+
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+
+          const match = trimmed.match(/^(.+?)[\s:=]+(\d+)$/);
+          if (match) {
+            const word = match[1].trim();
+            const count = parseInt(match[2], 10);
+            if (word && !isNaN(count)) {
+              frequencyMap.set(word, (frequencyMap.get(word) || 0) + count);
+              totalCount += count;
+            }
+          }
+        });
+
+        currentSortedWords = Array.from(frequencyMap.entries()).sort((a, b) => b[1] - a[1]);
+
+        totalWordsEl.textContent = totalCount.toLocaleString();
+        uniqueWordsEl.textContent = frequencyMap.size.toLocaleString();
+        totalCharsEl.textContent = evt.target.result.length.toLocaleString();
+
+        if (dictionaryData) {
+          applyDictionary();
+        } else {
+          renderTable(currentSortedWords);
         }
-      }, 50);
+      };
+
+      reader.readAsText(file);
+      fileInput.value = '';
+    });
+
+    // Add Dictionary JSON functionality
+    dictLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      dictInput.click();
+    });
+
+    dictInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          let jsonText = evt.target.result.trim();
+          // Fix malformed JSON if it starts with leading trailing brackets/commas
+          if (jsonText.startsWith('],') || jsonText.startsWith(']')) {
+            jsonText = '{' + jsonText.replace(/^[\s\],]+/, '');
+          }
+          if (!jsonText.endsWith('}')) {
+            jsonText = jsonText + '}';
+          }
+
+          dictionaryData = JSON.parse(jsonText);
+          alert('Dictionary successfully loaded!');
+          applyDictionary();
+        } catch (err) {
+          alert('Error parsing JSON dictionary file: ' + err.message);
+        }
+      };
+
+      reader.readAsText(file);
+      dictInput.value = '';
+    });
+
+    // Export functionality
+    exportBtn.addEventListener('click', () => {
+      if (currentSortedWords.length === 0) {
+        alert('No hay datos para exportar.');
+        return;
+      }
+
+      const content = currentSortedWords.map(([word, count]) => `${word} ${count}`).join('\n');
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'frecuencia_palabras.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    textInput.addEventListener('input', analyzeText);
+    ignoreCaseToggle.addEventListener('change', analyzeText);
+    ignoreStopwordsToggle.addEventListener('change', analyzeText);
+
+    clearBtn.addEventListener('click', () => {
+      textInput.value = '';
+      analyzeText();
+      textInput.focus();
     });
   </script>
-
 </body>
 </html>
