@@ -184,22 +184,22 @@
       let catA = "";
       let catB = "";
 
-      const matchPoet = valStr.match(/@@([\s\S]*?)@@/);
+      const matchPoet = valStr.match(/@@(.*?)@@/);
       if (matchPoet) poetologico = matchPoet[1].trim();
 
-      const matchIso = valStr.match(/==([\s\S]*?)==/);
+      const matchIso = valStr.match(/==(.*?)==/);
       if (matchIso) isophonos = matchIso[1].trim();
 
-      const matchGlosa = valStr.match(/\+\+([\s\S]*?)\+\+/);
+      const matchGlosa = valStr.match(/\+\+(.*?)\+\+/);
       if (matchGlosa) glosa = matchGlosa[1].trim();
 
-      const matchNum = valStr.match(/\#\#([\s\S]*?)\#\#/);
+      const matchNum = valStr.match(/\#\#(.*?)\#\#/);
       if (matchNum) num = matchNum[1].trim();
 
-      const matchA = valStr.match(/\(\(([\s\S]*?)\)\)/);
+      const matchA = valStr.match(/\(\((.*?)\)\)/);
       if (matchA) catA = matchA[1].trim();
 
-      const matchB = valStr.match(/\}\}([\s\S]*?)\{\{/);
+      const matchB = valStr.match(/\}\}(.*?)\{\{/);
       if (matchB) catB = matchB[1].trim();
 
       return { poetologico, isophonos, glosa, num, catA, catB };
@@ -545,13 +545,13 @@
       let html = "";
 
       html += "<div class=\"top-bar\">";
-      html += "<a href=\"javascript:iniciarNuevaEntrada()\">[+] AÑADIR</a>";
+      html += "<a href=\"javascript:iniciarNuevaEntrada()\">[+]</a>";
       if (historialNavegacion.length > 0) {
-        html += "<a href=\"javascript:volverAtras()\">[&lt;] BACK</a>";
+        html += "<a href=\"javascript:volverAtras()\">[&lt;]</a>";
       }
-      html += "<a href=\"javascript:abrirSelectorArchivo()\">[I] IMPORT TXT</a>";
-      html += "<a href=\"javascript:abrirSelectorDiccionario()\">[D] DICT JSON</a>";
-      html += "<a href=\"javascript:exportarTXT()\">[E] EXPORT TXT</a>";
+      html += "<a href=\"javascript:abrirSelectorArchivo()\">[I]</a>";
+      html += "<a href=\"javascript:abrirSelectorDiccionario()\">[D]</a>";
+      html += "<a href=\"javascript:exportarTXT()\">[E]</a>";
       html += "</div>";
 
       if (claveEditando !== null) {
