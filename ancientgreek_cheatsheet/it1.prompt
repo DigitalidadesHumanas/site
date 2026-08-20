@@ -1,0 +1,47 @@
+ i want to design a static webapp that uses local storage to store key value pairs of strings , the user can see an alphabetical list of this strings. They are in ancient greek . once cliked on one the value expands , the value is derived from a concise value form which is the real stored one.
+
+
+key : αρχαίος
+
+
+value: @@ αρχ>fuerza,energia, dominio, gobierno|αίος, αρχ<antiguo|αίος<< @@ == χώρα, ἄρχω == ++ πρὸ πολύς Χρόνος ++
+
+
+de este value se separaran en tres unidades, analisis poetologico, (entre @@) los isophonos , entre == y la glosa simplificada , entre ++
+
+
+la key y los values y todo se presentaran en texto plano , pero habra un texto [edita] con un link a la funcionalidad para editar esa entrada en especifico, se podra editar toda la entrada mientras cumpla con el formato que hemos dicho . La presentacion del value sera con un </p> despues de cada seccion del value. Toda la web sera en html plano, sin widgets, tablas ni maquetaciones , permitendo solo href con una funcion de javascript re-render que rendarizara la web de nuevo entera sin que el usuario tenga que hacer scroll alli donde estaba 
+
+
+
+---------------------
+
+
+ pon las opciones de eliminar y editar a un lado izquierdo de la frase , no introduzcas cada parte del desglose del value con una leyenda, reduce el interlineado , elimina el titulo y todo elemento decorativo, los links de eliminar seran [X] y el de editar [E], no cortes la longitud de una linea de explicacion
+
+
+estos son los cambios sobre lo que ya hicise con las restricciones que ya te di y que se mantienen 
+
+
+---------------------
+
+
+ cuando se edite o se crea un nueva entrada sin el patron en el value se pondra como plantilla "@@ @@ == == ++ ++"
+
+---------------------
+
+al final de la pagina habra un link [I] de importar , en el que en texto plano linea por linea habra una key value del tipo que acepta el programa y sera anyadida 
+
+
+
+
+
+----------------------
+
+quita del texto de la libreria de apolodorus todos los nombres propios, consigue los lemas solo (hay una tool de perseus que te los da) ordena los lemas por frequencia, para cada combinacion de tres letras del alfabeto griego dame, si existe, la primera palabra de esa lista (la mas frequente) independientemente de accentos y breathing marks , descarta las palabras que son cconectores simples sin significado propio. a esa lista damele este formato , donde palabra es la palabra y <numero> es su posicion entre los lemmas SELECCIONADOS , es decir la lista de combinaciones de prefijos donde cada entrada es la mejor en ese prefijo, <numero> no es el valor de la lista global de lemmas
+
+
+
+
+
+<palabra1> : @@    @@  ==    ==  ++  ++ # <numero> #

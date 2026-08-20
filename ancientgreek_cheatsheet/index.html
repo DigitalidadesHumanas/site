@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: monospace;
+      margin: 10px;
+      line-height: 1.1;
+    }
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 0;
+    }
+    li {
+      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+    .seccion {
+      margin-top: 2px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+    .seccion p {
+      margin: 0;
+      padding: 0;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app"></div>
+
+  <script>
+    const PLANTILLA_DEFAULT = "@@  @@ ==  == ++  ++ ##  ##";
+
+    function inicializarDatos() {
+      if (localStorage.length === 0) {
+        const keyEjemplo = "αρχαίος";
+        const valEjemplo = "@@ αρχ>fuerza,energia, dominio, gobierno|αίος, αρχ<antiguo|αίος<< @@ == χώρα, ἄρχω == ++ πρὸ πολύς Χρόνος ++ ## 123 ##";
+        localStorage.setItem(keyEjemplo, valEjemplo);
+      }
+    }
+
+    function parsearValue(valStr) {
+      let poetologico = "";
+      let isophonos = "";
+      let glosa = "";
+      let num = "";
+
+      const matchPoet = valStr.match(/@@(.*?)@@/);
+      if (matchPoet) poetologico = matchPoet[1].trim();
+
+      const matchIso = valStr.match(/==(.*?)==/);
+      if (matchIso) isophonos = matchIso[1].trim();
+
+      const matchGlosa = valStr.match(/\+\+(.*?)\+\+/);
+      if (matchGlosa) glosa = matchGlosa[1].trim();
+
+      const matchNum = valStr.match(/\#\#([0-9\s]*?)\#\#/);
+      if (matchNum) num = matchNum[1].trim();
+
+      return { poetologico, isophonos, glosa, num };
+    }
+
+    function generarSufijo(n) {
+      let resultado = "";
+      while (n >= 0) {
+        resultado = String.fromCharCode((n % 26) + 65) + resultado;
+        n = Math.floor(n / 26) - 1;
+      }
+      return "_" + resultado;
+    }
+
+    function obtenerClaveUnica(baseKey) {
+      if (localStorage.getItem(baseKey) === null) {
+        return baseKey;
+      }
+      let i = 0;
+      while (true) {
+        const sufijo = generarSufijo(i);
+        const nuevaClave = baseKey + sufijo;
+        if (localStorage.getItem(nuevaClave) === null) {
+          return nuevaClave;
+        }
+        i++;
+      }
+    }
+
+    let claveExpandida = null;
+    let claveEditando = null;
+    let esNuevaEntrada = false;
+    let mensajeError = "";
+
+    function reRender() {
+      const scrollY = window.scrollY;
+      const appDiv = document.getElementById("app");
+      appDiv.innerHTML = obtenerHTML();
+      window.scrollTo(0, scrollY);
+    }
+
+    function toggleExpandir(key) {
+      if (claveExpandida === key) {
+        claveExpandida = null;
+      } else {
+        claveExpandida = key;
+      }
+      reRender();
+    }
+
+    function iniciarEdicion(key) {
+      claveEditando = key;
+      esNuevaEntrada = false;
+      mensajeError = "";
+      reRender();
+    }
+
+    function iniciarNuevaEntrada() {
+      claveEditando = "";
+      esNuevaEntrada = true;
+      mensajeError = "";
+      reRender();
+    }
+
+    function cancelarEdicion() {
+      claveEditando = null;
+      esNuevaEntrada = false;
+      mensajeError = "";
+      reRender();
+    }
+
+    function guardarEntrada() {
+      const keyInput = document.getElementById("input-key").value.trim();
+      const valInput = document.getElementById("input-val").value.trim();
+
+      if (!keyInput) {
+        mensajeError = "La clave no puede estar vacía.";
+        reRender();
+        return;
+      }
+
+      const tienePoet = /@@.*?@@/.test(valInput);
+      const tieneIso = /==.*?==/.test(valInput);
+      const tieneGlosa = /\+\+.*?\+\+/.test(valInput);
+      const tieneNum = /\#\#[0-9\s]*?\#\#/.test(valInput);
+
+      if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
+        mensajeError = "El valor no cumple con el formato requerido: @@ ... @@ == ... == ++ ... ++ ## ... ##";
+        reRender();
+        return;
+      }
+
+      if (!esNuevaEntrada && claveEditando !== keyInput) {
+        localStorage.removeItem(claveEditando);
+      }
+
+      localStorage.setItem(keyInput, valInput);
+      claveEditando = null;
+      claveExpandida = keyInput;
+      esNuevaEntrada = false;
+      mensajeError = "";
+      reRender();
+    }
+
+    function eliminarEntrada(key) {
+      if (confirm(`¿Eliminar la entrada "${key}"?`)) {
+        localStorage.removeItem(key);
+        if (claveExpandida === key) claveExpandida = null;
+        if (claveEditando === key) claveEditando = null;
+        reRender();
+      }
+    }
+
+    function abrirSelectorArchivo() {
+      document.getElementById("input-file-txt").click();
+    }
+
+    function importarDesdeArchivo(event) {
+      const archivo = event.target.files[0];
+      if (!archivo) return;
+
+      const lector = new FileReader();
+      lector.onload = function(e) {
+        const contenido = e.target.result;
+        const lineas = contenido.split("\n");
+
+        lineas.forEach(linea => {
+          const lineaLimpia = linea.trim();
+          if (!lineaLimpia) return;
+
+          const posSeparador = lineaLimpia.indexOf(":");
+          if (posSeparador !== -1) {
+            const keyBase = lineaLimpia.substring(0, posSeparador).trim();
+            const val = lineaLimpia.substring(posSeparador + 1).trim();
+
+            const tienePoet = /@@.*?@@/.test(val);
+            const tieneIso = /==.*?==/.test(val);
+            const tieneGlosa = /\+\+.*?\+\+/.test(val);
+            const tieneNum = /\#\#[0-9\s]*?\#\#/.test(val);
+
+            if (keyBase && tienePoet && tieneIso && tieneGlosa && tieneNum) {
+              const claveFinal = obtenerClaveUnica(keyBase);
+              localStorage.setItem(claveFinal, val);
+            }
+          }
+        });
+
+        reRender();
+      };
+
+      lector.readAsText(archivo, "UTF-8");
+    }
+
+    function exportarTXT() {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        keys.push(localStorage.key(i));
+      }
+      keys.sort((a, b) => a.localeCompare(b, 'el'));
+
+      let contenido = "";
+      keys.forEach(key => {
+        const val = localStorage.getItem(key);
+        contenido += `${key} : ${val}\n`;
+      });
+
+      const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "diccionario.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function obtenerHTML() {
+      let html = "";
+
+      html += "<p><a href=\"javascript:iniciarNuevaEntrada()\">[+]</a></p>";
+
+      if (claveEditando !== null) {
+        let valActual = esNuevaEntrada ? "" : (localStorage.getItem(claveEditando) || "");
+        
+        const tienePoet = /@@.*?@@/.test(valActual);
+        const tieneIso = /==.*?==/.test(valActual);
+        const tieneGlosa = /\+\+.*?\+\+/.test(valActual);
+        const tieneNum = /\#\#[0-9\s]*?\#\#/.test(valActual);
+
+        if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
+          valActual = PLANTILLA_DEFAULT;
+        }
+
+        html += "<div>";
+        if (mensajeError) {
+          html += `<p class="error">${mensajeError}</p>`;
+        }
+        html += `<input type="text" id="input-key" value="${claveEditando}"><br>`;
+        html += `<textarea id="input-val" rows="3" cols="80">${valActual}</textarea><br>`;
+        html += "<a href=\"javascript:guardarEntrada()\">[Guardar]</a> ";
+        html += "<a href=\"javascript:cancelarEdicion()\">[Cancelar]</a>";
+        html += "</div>";
+      }
+
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        keys.push(localStorage.key(i));
+      }
+      keys.sort((a, b) => a.localeCompare(b, 'el'));
+
+      if (keys.length > 0) {
+        html += "<ul>";
+        keys.forEach(key => {
+          const estaExpandido = (key === claveExpandida);
+          html += "<li>";
+          html += `<a href="javascript:eliminarEntrada('${key}')">[X]</a> `;
+          html += `<a href="javascript:iniciarEdicion('${key}')">[E]</a> `;
+          html += `<a href="javascript:toggleExpandir('${key}')"><strong>${key}</strong></a>`;
+
+          if (estaExpandido) {
+            const rawVal = localStorage.getItem(key) || "";
+            const parsed = parsearValue(rawVal);
+
+            html += "<div class=\"seccion\">";
+            html += `<p>${parsed.poetologico}</p>`;
+            html += `<p>${parsed.isophonos}</p>`;
+            html += `<p>${parsed.glosa}</p>`;
+            html += `<p>${parsed.num}</p>`;
+            html += "</div>";
+          }
+
+          html += "</li>";
+        });
+        html += "</ul>";
+      }
+
+      html += "<p>";
+      html += "<a href=\"javascript:abrirSelectorArchivo()\">[I]</a> ";
+      html += "<a href=\"javascript:exportarTXT()\">[E TXT]</a>";
+      html += "</p>";
+
+      html += "<input type=\"file\" id=\"input-file-txt\" accept=\".txt\" style=\"display:none;\" onchange=\"importarDesdeArchivo(event)\">";
+
+      return html;
+    }
+
+    inicializarDatos();
+    reRender();
+  </script>
+
+</body>
+</html>
