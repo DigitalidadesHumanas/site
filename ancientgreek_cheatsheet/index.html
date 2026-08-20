@@ -26,14 +26,22 @@
       padding: 10px;
     }
 
-    /* Increased touch target areas for links to be finger-friendly */
+    /* Clickable links styled blue with touch-friendly target areas */
     a {
       text-decoration: none;
-      color: #000;
+      color: #0066cc;
       font-weight: bold;
       padding: 8px 4px; 
       margin-right: 4px;
       display: inline-block;
+    }
+
+    a:visited {
+      color: #0066cc;
+    }
+
+    a:active {
+      color: #004499;
     }
 
     .top-bar {
@@ -68,7 +76,7 @@
     }
 
     .entry {
-      margin-bottom: 12px; /* A bit more breathing room on mobile */
+      margin-bottom: 12px; /* Breathing room on mobile */
       white-space: normal;
       word-break: break-word;
       overflow-wrap: anywhere;
@@ -110,7 +118,7 @@
       width: 100%;
       max-width: 100%;
       font-family: monospace;
-      font-size: 16px; /* 16px prevents iOS Safari from auto-zooming on focus */
+      font-size: 16px; /* 16px prevents iOS Safari auto-zooming on focus */
       padding: 8px;
       margin-bottom: 8px;
       border: 1px solid #ccc;
@@ -145,16 +153,17 @@
       let glosa = "";
       let num = "";
 
-      const matchPoet = valStr.match(/@@(.*?)@@/);
+      // Regex matches capture everything between delimiters while striping out @@, ==, ++, ##
+      const matchPoet = valStr.match(/@@([\s\S]*?)@@/);
       if (matchPoet) poetologico = matchPoet[1].trim();
 
-      const matchIso = valStr.match(/==(.*?)==/);
+      const matchIso = valStr.match(/==([\s\S]*?)==/);
       if (matchIso) isophonos = matchIso[1].trim();
 
-      const matchGlosa = valStr.match(/\+\+(.*?)\+\+/);
+      const matchGlosa = valStr.match(/\+\+([\s\S]*?)\+\+/);
       if (matchGlosa) glosa = matchGlosa[1].trim();
 
-      const matchNum = valStr.match(/\#\#([0-9\s]*?)\#\#/);
+      const matchNum = valStr.match(/\#\#([\s\S]*?)\#\#/);
       if (matchNum) num = matchNum[1].trim();
 
       return { poetologico, isophonos, glosa, num };
@@ -242,10 +251,10 @@
         return;
       }
 
-      const tienePoet = /@@.*?@@/.test(valInput);
-      const tieneIso = /==.*?==/.test(valInput);
-      const tieneGlosa = /\+\+.*?\+\+/.test(valInput);
-      const tieneNum = /\#\#[0-9\s]*?\#\#/.test(valInput);
+      const tienePoet = /@@[\s\S]*?@@/.test(valInput);
+      const tieneIso = /==[\s\S]*?==/.test(valInput);
+      const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(valInput);
+      const tieneNum = /\#\#[\s\S]*?\#\#/.test(valInput);
 
       if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
         mensajeError = "El valor no cumple con el formato requerido: @@ ... @@ == ... == ++ ... ++ ## ... ##";
@@ -300,10 +309,10 @@
             const keyBase = lineaLimpia.substring(0, posSeparador).trim();
             const val = lineaLimpia.substring(posSeparador + 1).trim();
 
-            const tienePoet = /@@.*?@@/.test(val);
-            const tieneIso = /==.*?==/.test(val);
-            const tieneGlosa = /\+\+.*?\+\+/.test(val);
-            const tieneNum = /\#\#[0-9\s]*?\#\#/.test(val);
+            const tienePoet = /@@[\s\S]*?@@/.test(val);
+            const tieneIso = /==[\s\S]*?==/.test(val);
+            const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(val);
+            const tieneNum = /\#\#[\s\S]*?\#\#/.test(val);
 
             if (keyBase && tienePoet && tieneIso && tieneGlosa && tieneNum) {
               const claveFinal = obtenerClaveUnica(keyBase);
@@ -356,7 +365,7 @@
               const valStr = localStorage.getItem(key);
 
               if (valStr) {
-                const nuevoVal = valStr.replace(/\+\+(.*?)\+\+/, (match, p1) => {
+                const nuevoVal = valStr.replace(/\+\+([\s\S]*?)\+\+/, (match, p1) => {
                   const glosaLimpia = p1.trim();
                   if (glosaLimpia.length > 0) {
                     return `++ ${glosaLimpia} | ${defsUnidas} ++`;
@@ -402,14 +411,13 @@
     function calcularCapacidadColumna() {
       const altoPantalla = window.innerHeight;
       const altoDisponible = altoPantalla - 110;
-      const altoLinea = 22; /* Increased estimate due to line wraps on mobile */
+      const altoLinea = 22;
       const lineasTotales = Math.floor(altoDisponible / altoLinea);
       return Math.max(1, lineasTotales - 2);
     }
 
     function calcularNumColumnas() {
       const anchoPantalla = window.innerWidth;
-      /* Force 1 column on small screens (like iPhone 6 which is 375px wide) to keep it readable */
       if (anchoPantalla < 600) {
         return 1;
       }
@@ -430,10 +438,10 @@
       if (claveEditando !== null) {
         let valActual = esNuevaEntrada ? "" : (localStorage.getItem(claveEditando) || "");
         
-        const tienePoet = /@@.*?@@/.test(valActual);
-        const tieneIso = /==.*?==/.test(valActual);
-        const tieneGlosa = /\+\+.*?\+\+/.test(valActual);
-        const tieneNum = /\#\#[0-9\s]*?\#\#/.test(valActual);
+        const tienePoet = /@@[\s\S]*?@@/.test(valActual);
+        const tieneIso = /==[\s\S]*?==/.test(valActual);
+        const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(valActual);
+        const tieneNum = /\#\#[\s\S]*?\#\#/.test(valActual);
 
         if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
           valActual = PLANTILLA_DEFAULT;
@@ -518,7 +526,6 @@
         paginas.push(columnasPaginadas.slice(i, i + numCols));
       }
 
-      /* No fixed height to avoid vertical overflow breaking layout on mobile keyboards */
       html += "<div class=\"pages-scroll-container\">";
 
       if (paginas.length === 0) {
