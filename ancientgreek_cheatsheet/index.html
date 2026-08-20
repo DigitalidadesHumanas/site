@@ -3,29 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: monospace;
-      margin: 10px;
+      margin: 0;
+      padding: 0;
+      background-color: #fff;
+      color: #000;
+      overflow: hidden;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 15px 5px 15px;
+    }
+
+    .top-bar {
+      margin-bottom: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Contenedor principal con scroll vertical para las páginas */
+    .pages-scroll-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-bottom: 6px;
+    }
+
+    /* Cada página ocupa el alto/ancho disponible */
+    .page-sheet {
+      width: 100%;
+      box-sizing: border-box;
+      border-bottom: 2px dashed #999;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-header {
+      font-weight: bold;
+      font-size: 0.9em;
+      margin-bottom: 6px;
+      color: #444;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2px;
+    }
+
+    .dictionary-grid {
+      flex: 1;
+      display: grid;
+      gap: 0 15px;
+      overflow: hidden;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px dotted #ccc;
+      padding-right: 10px;
+    }
+
+    .column:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    .entry {
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       line-height: 1.1;
     }
-    ul {
-      list-style-type: none;
-      padding-left: 0;
-      margin: 0;
-    }
-    li {
-      margin-bottom: 6px;
-      white-space: nowrap;
-    }
+
     .seccion {
       margin-top: 2px;
-      margin-bottom: 6px;
-      white-space: nowrap;
+      margin-bottom: 4px;
+      padding-left: 10px;
     }
+
     .seccion p {
       margin: 0;
       padding: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
+    .nav-bar {
+      height: 2.2em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-top: 1px solid #eee;
+      padding-top: 4px;
+    }
+
     .error {
       color: red;
     }
@@ -37,6 +121,7 @@
 
   <script>
     const PLANTILLA_DEFAULT = "@@  @@ ==  == ++  ++ ##  ##";
+    const RATIO_AUREO = 1.61803398875;
 
     function inicializarDatos() {
       if (localStorage.length === 0) {
@@ -97,10 +182,16 @@
     let mensajeError = "";
 
     function reRender() {
-      const scrollY = window.scrollY;
+      const scrollContainer = document.querySelector(".pages-scroll-container");
+      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+      
       const appDiv = document.getElementById("app");
       appDiv.innerHTML = obtenerHTML();
-      window.scrollTo(0, scrollY);
+
+      const newScrollContainer = document.querySelector(".pages-scroll-container");
+      if (newScrollContainer) {
+        newScrollContainer.scrollTop = scrollTop;
+      }
     }
 
     function toggleExpandir(key) {
@@ -237,10 +328,29 @@
       URL.revokeObjectURL(url);
     }
 
+    function calcularCapacidadColumna() {
+      const altoPantalla = window.innerHeight;
+      const altoDisponible = altoPantalla - 110;
+      const altoLinea = 18;
+      const lineasTotales = Math.floor(altoDisponible / altoLinea);
+      return Math.max(1, lineasTotales - 2);
+    }
+
+    function calcularNumColumnas() {
+      const altoPantalla = window.innerHeight;
+      const altoDisponible = altoPantalla - 110;
+      const anchoColumnaIdeada = altoDisponible / RATIO_AUREO;
+      const anchoPantalla = window.innerWidth - 30;
+      const cols = Math.floor(anchoPantalla / anchoColumnaIdeada);
+      return Math.max(1, cols);
+    }
+
     function obtenerHTML() {
       let html = "";
 
-      html += "<p><a href=\"javascript:iniciarNuevaEntrada()\">[+]</a></p>";
+      html += "<div class=\"top-bar\">";
+      html += "<a href=\"javascript:iniciarNuevaEntrada()\">[+]</a>";
+      html += "</div>";
 
       if (claveEditando !== null) {
         let valActual = esNuevaEntrada ? "" : (localStorage.getItem(claveEditando) || "");
@@ -254,7 +364,7 @@
           valActual = PLANTILLA_DEFAULT;
         }
 
-        html += "<div>";
+        html += "<div style=\"margin-bottom:10px;\">";
         if (mensajeError) {
           html += `<p class="error">${mensajeError}</p>`;
         }
@@ -271,41 +381,121 @@
       }
       keys.sort((a, b) => a.localeCompare(b, 'el'));
 
-      if (keys.length > 0) {
-        html += "<ul>";
-        keys.forEach(key => {
-          const estaExpandido = (key === claveExpandida);
-          html += "<li>";
-          html += `<a href="javascript:eliminarEntrada('${key}')">[X]</a> `;
-          html += `<a href="javascript:iniciarEdicion('${key}')">[E]</a> `;
-          html += `<a href="javascript:toggleExpandir('${key}')"><strong>${key}</strong></a>`;
+      const lineasPorColumna = calcularCapacidadColumna();
+      const numCols = calcularNumColumnas();
+
+      let itemsProcesados = [];
+      keys.forEach(key => {
+        const estaExpandido = (key === claveExpandida);
+        let peso = 1;
+
+        let renderFunc = (k) => {
+          let itemHtml = "<div class=\"entry\">";
+          itemHtml += `<a href="javascript:eliminarEntrada('${k}')">[X]</a> `;
+          itemHtml += `<a href="javascript:iniciarEdicion('${k}')">[E]</a> `;
+          itemHtml += `<a href="javascript:toggleExpandir('${k}')"><strong>${k}</strong></a>`;
 
           if (estaExpandido) {
-            const rawVal = localStorage.getItem(key) || "";
+            const rawVal = localStorage.getItem(k) || "";
             const parsed = parsearValue(rawVal);
 
-            html += "<div class=\"seccion\">";
-            html += `<p>${parsed.poetologico}</p>`;
-            html += `<p>${parsed.isophonos}</p>`;
-            html += `<p>${parsed.glosa}</p>`;
-            html += `<p>${parsed.num}</p>`;
+            itemHtml += "<div class=\"seccion\">";
+            itemHtml += `<p>${parsed.poetologico}</p>`;
+            itemHtml += `<p>${parsed.isophonos}</p>`;
+            itemHtml += `<p>${parsed.glosa}</p>`;
+            itemHtml += `<p>${parsed.num}</p>`;
+            itemHtml += "</div>";
+          }
+          itemHtml += "</div>";
+          return itemHtml;
+        };
+
+        if (estaExpandido) {
+          peso += 4;
+        }
+
+        itemsProcesados.push({
+          key: key,
+          peso: peso,
+          html: renderFunc(key)
+        });
+      });
+
+      let columnasPaginadas = [];
+      let colActual = [];
+      let pesoColActual = 0;
+
+      itemsProcesados.forEach(item => {
+        if (pesoColActual + item.peso > lineasPorColumna && colActual.length > 0) {
+          columnasPaginadas.push(colActual);
+          colActual = [];
+          pesoColActual = 0;
+        }
+        colActual.push(item);
+        pesoColActual += item.peso;
+      });
+      if (colActual.length > 0) {
+        columnasPaginadas.push(colActual);
+      }
+
+      let paginas = [];
+      for (let i = 0; i < columnasPaginadas.length; i += numCols) {
+        paginas.push(columnasPaginadas.slice(i, i + numCols));
+      }
+
+      const altoPaginaCss = (window.innerHeight - 100) + "px";
+
+      html += "<div class=\"pages-scroll-container\">";
+
+      if (paginas.length === 0) {
+        html += "<div class=\"page-sheet\" style=\"height:" + altoPaginaCss + ";\">";
+        html += "<div class=\"page-header\">P1</div>";
+        html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
+        for (let c = 0; c < numCols; c++) {
+          html += "<div class=\"column\"></div>";
+        }
+        html += "</div>";
+        html += "</div>";
+      } else {
+        paginas.forEach((colsPagina, pIdx) => {
+          const numPag = pIdx + 1;
+          html += "<div class=\"page-sheet\" style=\"height:" + altoPaginaCss + ";\">";
+          html += `<div class="page-header">P${numPag}</div>`;
+          html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
+
+          for (let cIdx = 0; cIdx < numCols; cIdx++) {
+            const numCol = cIdx + 1;
+            html += "<div class=\"column\">";
+            
+            if (colsPagina[cIdx]) {
+              colsPagina[cIdx].forEach(item => {
+                html += item.html;
+              });
+            }
+
             html += "</div>";
           }
 
-          html += "</li>";
+          html += "</div>";
+          html += "</div>";
         });
-        html += "</ul>";
       }
 
-      html += "<p>";
+      html += "</div>";
+
+      html += "<div class=\"nav-bar\">";
       html += "<a href=\"javascript:abrirSelectorArchivo()\">[I]</a> ";
       html += "<a href=\"javascript:exportarTXT()\">[E TXT]</a>";
-      html += "</p>";
+      html += "</div>";
 
       html += "<input type=\"file\" id=\"input-file-txt\" accept=\".txt\" style=\"display:none;\" onchange=\"importarDesdeArchivo(event)\">";
 
       return html;
     }
+
+    window.addEventListener('resize', () => {
+      reRender();
+    });
 
     inicializarDatos();
     reRender();
