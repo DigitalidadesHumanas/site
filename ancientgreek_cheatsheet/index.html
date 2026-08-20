@@ -29,7 +29,6 @@
       flex-shrink: 0;
     }
 
-    /* Contenedor principal con scroll vertical para las páginas */
     .pages-scroll-container {
       flex: 1;
       overflow-y: auto;
@@ -37,24 +36,13 @@
       margin-bottom: 6px;
     }
 
-    /* Cada página ocupa el alto/ancho disponible */
     .page-sheet {
       width: 100%;
       box-sizing: border-box;
-      border-bottom: 2px dashed #999;
       padding-bottom: 10px;
       margin-bottom: 20px;
       display: flex;
       flex-direction: column;
-    }
-
-    .page-header {
-      font-weight: bold;
-      font-size: 0.9em;
-      margin-bottom: 6px;
-      color: #444;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 2px;
     }
 
     .dictionary-grid {
@@ -68,13 +56,7 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-right: 1px dotted #ccc;
       padding-right: 10px;
-    }
-
-    .column:last-child {
-      border-right: none;
-      padding-right: 0;
     }
 
     .entry {
@@ -106,7 +88,6 @@
       gap: 10px;
       white-space: nowrap;
       flex-shrink: 0;
-      border-top: 1px solid #eee;
       padding-top: 4px;
     }
 
@@ -270,6 +251,10 @@
       document.getElementById("input-file-txt").click();
     }
 
+    function abrirSelectorDiccionario() {
+      document.getElementById("input-file-json").click();
+    }
+
     function importarDesdeArchivo(event) {
       const archivo = event.target.files[0];
       if (!archivo) return;
@@ -301,6 +286,65 @@
         });
 
         reRender();
+      };
+
+      lector.readAsText(archivo, "UTF-8");
+    }
+
+    function importarDiccionarioJSON(event) {
+      const archivo = event.target.files[0];
+      if (!archivo) return;
+
+      const lector = new FileReader();
+      lector.onload = function(e) {
+        try {
+          let texto = e.target.result.trim();
+          if (texto.startsWith("},")) {
+            texto = "{" + texto.substring(2);
+          } else if (!texto.startsWith("{")) {
+            texto = "{" + texto;
+          }
+          if (!texto.endsWith("}")) {
+            texto = texto + "}";
+          }
+
+          const dictData = JSON.parse(texto);
+
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const keyLimpia = key.split("_")[0];
+
+            let entry = dictData[keyLimpia] || dictData[key];
+            if (!entry) {
+              for (const k in dictData) {
+                if (dictData[k].lemma === keyLimpia || dictData[k].lemma_normalized === keyLimpia) {
+                  entry = dictData[k];
+                  break;
+                }
+              }
+            }
+
+            if (entry && entry.definitions && entry.definitions.length > 0) {
+              const defsUnidas = entry.definitions.join(" | ");
+              const valStr = localStorage.getItem(key);
+
+              if (valStr) {
+                const nuevoVal = valStr.replace(/\+\+(.*?)\+\+/, (match, p1) => {
+                  const glosaLimpia = p1.trim();
+                  if (glosaLimpia.length > 0) {
+                    return `++ ${glosaLimpia} | ${defsUnidas} ++`;
+                  } else {
+                    return `++ ${defsUnidas} ++`;
+                  }
+                });
+                localStorage.setItem(key, nuevoVal);
+              }
+            }
+          }
+          reRender();
+        } catch (err) {
+          alert("Error al procesar el JSON del diccionario: " + err.message);
+        }
       };
 
       lector.readAsText(archivo, "UTF-8");
@@ -449,7 +493,6 @@
 
       if (paginas.length === 0) {
         html += "<div class=\"page-sheet\" style=\"height:" + altoPaginaCss + ";\">";
-        html += "<div class=\"page-header\">P1</div>";
         html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
         for (let c = 0; c < numCols; c++) {
           html += "<div class=\"column\"></div>";
@@ -457,14 +500,11 @@
         html += "</div>";
         html += "</div>";
       } else {
-        paginas.forEach((colsPagina, pIdx) => {
-          const numPag = pIdx + 1;
+        paginas.forEach((colsPagina) => {
           html += "<div class=\"page-sheet\" style=\"height:" + altoPaginaCss + ";\">";
-          html += `<div class="page-header">P${numPag}</div>`;
           html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
 
           for (let cIdx = 0; cIdx < numCols; cIdx++) {
-            const numCol = cIdx + 1;
             html += "<div class=\"column\">";
             
             if (colsPagina[cIdx]) {
@@ -485,10 +525,12 @@
 
       html += "<div class=\"nav-bar\">";
       html += "<a href=\"javascript:abrirSelectorArchivo()\">[I]</a> ";
+      html += "<a href=\"javascript:abrirSelectorDiccionario()\">[D]</a> ";
       html += "<a href=\"javascript:exportarTXT()\">[E TXT]</a>";
       html += "</div>";
 
       html += "<input type=\"file\" id=\"input-file-txt\" accept=\".txt\" style=\"display:none;\" onchange=\"importarDesdeArchivo(event)\">";
+      html += "<input type=\"file\" id=\"input-file-json\" accept=\".json,text/plain\" style=\"display:none;\" onchange=\"importarDiccionarioJSON(event)\">";
 
       return html;
     }
