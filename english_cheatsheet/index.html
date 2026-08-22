@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: monospace;
+      font-size: 14px;
+      margin: 0;
+      padding: 0;
+      background-color: #fff;
+      color: #000;
+      overflow: hidden;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    /* Minimal loading state */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      z-index: 9999;
+    }
+
+    a {
+      text-decoration: none;
+      color: #0066cc;
+      font-weight: bold;
+      padding: 6px 2px;
+      margin-right: 2px;
+      display: inline-block;
+    }
+
+    a:visited {
+      color: #0066cc;
+    }
+
+    a:active {
+      color: #004499;
+    }
+
+    .top-bar {
+      margin-bottom: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pages-scroll-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-bottom: 6px;
+    }
+
+    .page-sheet {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dictionary-grid {
+      flex: 1;
+      display: grid;
+      gap: 0 10px;
+      overflow: hidden;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .entry {
+      margin-bottom: 12px;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      line-height: 1.3;
+    }
+
+    .seccion {
+      margin-top: 4px;
+      margin-bottom: 8px;
+      padding-left: 8px;
+    }
+
+    .seccion p {
+      margin: 0 0 4px 0;
+      padding: 0;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      line-height: 1.3;
+    }
+
+    .error {
+      color: red;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      max-width: 100%;
+      font-family: monospace;
+      font-size: 16px; /* Prevents iOS auto-zoom */
+      padding: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .edit-container {
+      width: 100%;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading">...</div>
+  <div id="app"></div>
+
+  <script>
+    const PLANTILLA_DEFAULT = "@@  @@ ==  == ++  ++ ##  ## ((  )) }}  {{";
+    const RATIO_AUREO = 1.61803398875;
+
+    let claveExpandida = null;
+    let claveEditando = null;
+    let esNuevaEntrada = false;
+    let mensajeError = "";
+    
+    // Navigation History Stack
+    let historialNavegacion = [];
+
+    // Cache computed A and B categories in memory
+    let cacheCategorias = {};
+
+    // Helper functions for escaping dynamic data into HTML contexts
+    function escapeHTML(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function escapeJS(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r");
+    }
+
+    function inicializarDatos() {
+      if (localStorage.length === 0) {
+        const keyEjemplo = "αρχαίος";
+        const valEjemplo = "@@ αρχ>fuerza,energia, dominio, gobierno|αίος, αρχ<antiguo|αίος<< @@ == χώρα, ἄρχω == ++ πρὸ πολύς Χρόνος ++ ## 123 ## ((  )) }}  {{";
+        localStorage.setItem(keyEjemplo, valEjemplo);
+      }
+    }
+
+    // Strip non-Greek letters & diacritics / accents / breathing marks
+    function normalizarGriego(texto) {
+      if (!texto) return "";
+      return texto
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove accents/diacritics
+        .toLowerCase()
+        .replace(/[^α-ω]/g, ""); // keep strictly Greek alphabet characters
+    }
+
+    function parsearValue(valStr) {
+      let poetologico = "";
+      let isophonos = "";
+      let glosa = "";
+      let num = "";
+      let catA = "";
+      let catB = "";
+
+      const matchPoet = valStr.match(/@@([\s\S]*?)@@/);
+      if (matchPoet) poetologico = matchPoet[1].trim();
+
+      const matchIso = valStr.match(/==([\s\S]*?)==/);
+      if (matchIso) isophonos = matchIso[1].trim();
+
+      const matchGlosa = valStr.match(/\+\+([\s\S]*?)\+\+/);
+      if (matchGlosa) glosa = matchGlosa[1].trim();
+
+      const matchNum = valStr.match(/\#\#([\s\S]*?)\#\#/);
+      if (matchNum) num = matchNum[1].trim();
+
+      const matchA = valStr.match(/\(\(([\s\S]*?)\)\)/);
+      if (matchA) catA = matchA[1].trim();
+
+      const matchB = valStr.match(/\}\}([\s\S]*?)\{\{/);
+      if (matchB) catB = matchB[1].trim();
+
+      return { poetologico, isophonos, glosa, num, catA, catB };
+    }
+
+    function calcularCategoriasAB() {
+      cacheCategorias = {};
+      const keys = [];
+      const keysNormMap = {};
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        keys.push(k);
+        keysNormMap[k] = normalizarGriego(k);
+        cacheCategorias[k] = { a: [], b: [] };
+      }
+
+      // Compute A and B matching links across all dictionary keys
+      for (let i = 0; i < keys.length; i++) {
+        const keyTarget = keys[i];
+        const normTarget = keysNormMap[keyTarget];
+        const prefixTarget = normTarget.substring(0, 3);
+
+        if (prefixTarget.length < 3) continue;
+
+        for (let j = 0; j < keys.length; j++) {
+          if (i === j) continue;
+          const keyOther = keys[j];
+          const normOther = keysNormMap[keyOther];
+
+          // Category A: Target prefix matches inside Other key string
+          if (normOther.includes(prefixTarget)) {
+            cacheCategorias[keyTarget].a.push(keyOther);
+          }
+
+          // Category B: Inverse - Other prefix matches inside Target key string
+          const prefixOther = normOther.substring(0, 3);
+          if (prefixOther.length === 3 && normTarget.includes(prefixOther)) {
+            cacheCategorias[keyTarget].b.push(keyOther);
+          }
+        }
+      }
+    }
+
+    function generarSufijo(n) {
+      let resultado = "";
+      while (n >= 0) {
+        resultado = String.fromCharCode((n % 26) + 65) + resultado;
+        n = Math.floor(n / 26) - 1;
+      }
+      return "_" + resultado;
+    }
+
+    function obtenerClaveUnica(baseKey) {
+      if (localStorage.getItem(baseKey) === null) {
+        return baseKey;
+      }
+      let i = 0;
+      while (true) {
+        const sufijo = generarSufijo(i);
+        const nuevaClave = baseKey + sufijo;
+        if (localStorage.getItem(nuevaClave) === null) {
+          return nuevaClave;
+        }
+        i++;
+      }
+    }
+
+    function reRender() {
+      const scrollContainer = document.querySelector(".pages-scroll-container");
+      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+      
+      const appDiv = document.getElementById("app");
+      appDiv.innerHTML = obtenerHTML();
+
+      const newScrollContainer = document.querySelector(".pages-scroll-container");
+      if (newScrollContainer) {
+        newScrollContainer.scrollTop = scrollTop;
+      }
+    }
+
+    function toggleExpandir(key) {
+      if (claveExpandida === key) {
+        claveExpandida = null;
+      } else {
+        claveExpandida = key;
+      }
+      reRender();
+    }
+
+    function saltarAEntrada(targetKey) {
+      if (claveExpandida && claveExpandida !== targetKey) {
+        historialNavegacion.push(claveExpandida);
+      }
+      claveExpandida = targetKey;
+      reRender();
+
+      // Auto-scroll target entry into view
+      setTimeout(() => {
+        const el = document.getElementById("entry-" + targetKey);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
+    }
+
+    function volverAtras() {
+      if (historialNavegacion.length > 0) {
+        const prevKey = historialNavegacion.pop();
+        claveExpandida = prevKey;
+        reRender();
+
+        setTimeout(() => {
+          const el = document.getElementById("entry-" + prevKey);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 50);
+      }
+    }
+
+    function iniciarEdicion(key) {
+      claveEditando = key;
+      esNuevaEntrada = false;
+      mensajeError = "";
+      reRender();
+    }
+
+    function iniciarNuevaEntrada() {
+      claveEditando = "";
+      esNuevaEntrada = true;
+      mensajeError = "";
+      reRender();
+    }
+
+    function cancelarEdicion() {
+      claveEditando = null;
+      esNuevaEntrada = false;
+      mensajeError = "";
+      reRender();
+    }
+
+    function guardarEntrada() {
+      const keyInput = document.getElementById("input-key").value.trim();
+      const valInput = document.getElementById("input-val").value.trim();
+
+      if (!keyInput) {
+        mensajeError = "La clave no puede estar vacía.";
+        reRender();
+        return;
+      }
+
+      const tienePoet = /@@[\s\S]*?@@/.test(valInput);
+      const tieneIso = /==[\s\S]*?==/.test(valInput);
+      const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(valInput);
+      const tieneNum = /\#\#[\s\S]*?\#\#/.test(valInput);
+
+      if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
+        mensajeError = "El valor no cumple con el formato requerido.";
+        reRender();
+        return;
+      }
+
+      if (!esNuevaEntrada && claveEditando !== keyInput) {
+        localStorage.removeItem(claveEditando);
+      }
+
+      localStorage.setItem(keyInput, valInput);
+      claveEditando = null;
+      claveExpandida = keyInput;
+      esNuevaEntrada = false;
+      mensajeError = "";
+      
+      // Recompute dynamic categories when data changes
+      calcularCategoriasAB();
+      reRender();
+    }
+
+    function eliminarEntrada(key) {
+      if (confirm(`¿Eliminar la entrada "${key}"?`)) {
+        localStorage.removeItem(key);
+        if (claveExpandida === key) claveExpandida = null;
+        if (claveEditando === key) claveEditando = null;
+        
+        calcularCategoriasAB();
+        reRender();
+      }
+    }
+
+    function abrirSelectorArchivo() {
+      document.getElementById("input-file-txt").click();
+    }
+
+    function abrirSelectorDiccionario() {
+      document.getElementById("input-file-json").click();
+    }
+
+    function importarDesdeArchivo(event) {
+      const archivo = event.target.files[0];
+      if (!archivo) return;
+
+      const lector = new FileReader();
+      lector.onload = function(e) {
+        const contenido = e.target.result;
+        const lineas = contenido.split("\n");
+
+        lineas.forEach(linea => {
+          const lineaLimpia = linea.trim();
+          if (!lineaLimpia) return;
+
+          const posSeparador = lineaLimpia.indexOf(":");
+          if (posSeparador !== -1) {
+            const keyBase = lineaLimpia.substring(0, posSeparador).trim();
+            const val = lineaLimpia.substring(posSeparador + 1).trim();
+
+            const tienePoet = /@@[\s\S]*?@@/.test(val);
+            const tieneIso = /==[\s\S]*?==/.test(val);
+            const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(val);
+            const tieneNum = /\#\#[\s\S]*?\#\#/.test(val);
+
+            if (keyBase && tienePoet && tieneIso && tieneGlosa && tieneNum) {
+              const claveFinal = obtenerClaveUnica(keyBase);
+              localStorage.setItem(claveFinal, val);
+            }
+          }
+        });
+
+        calcularCategoriasAB();
+        reRender();
+      };
+
+      lector.readAsText(archivo, "UTF-8");
+    }
+
+    function importarDiccionarioJSON(event) {
+      const archivo = event.target.files[0];
+      if (!archivo) return;
+
+      const lector = new FileReader();
+      lector.onload = function(e) {
+        try {
+          let texto = e.target.result.trim();
+          if (texto.startsWith("},")) {
+            texto = "{" + texto.substring(2);
+          } else if (!texto.startsWith("{")) {
+            texto = "{" + texto;
+          }
+          if (!texto.endsWith("}")) {
+            texto = texto + "}";
+          }
+
+          const dictData = JSON.parse(texto);
+
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const keyLimpia = key.split("_")[0];
+
+            let entry = dictData[keyLimpia] || dictData[key];
+            if (!entry) {
+              for (const k in dictData) {
+                if (dictData[k].lemma === keyLimpia || dictData[k].lemma_normalized === keyLimpia) {
+                  entry = dictData[k];
+                  break;
+                }
+              }
+            }
+
+            if (entry && entry.definitions && entry.definitions.length > 0) {
+              const defsUnidas = entry.definitions.join(" | ");
+              const valStr = localStorage.getItem(key);
+
+              if (valStr) {
+                const nuevoVal = valStr.replace(/\+\+([\s\S]*?)\+\+/, (match, p1) => {
+                  const glosaLimpia = p1.trim();
+                  if (glosaLimpia.length > 0) {
+                    return `++ ${glosaLimpia} | ${defsUnidas} ++`;
+                  } else {
+                    return `++ ${defsUnidas} ++`;
+                  }
+                });
+                localStorage.setItem(key, nuevoVal);
+              }
+            }
+          }
+          calcularCategoriasAB();
+          reRender();
+        } catch (err) {
+          alert("Error al procesar el JSON del diccionario: " + err.message);
+        }
+      };
+
+      lector.readAsText(archivo, "UTF-8");
+    }
+
+    function exportarTXT() {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        keys.push(localStorage.key(i));
+      }
+      keys.sort((a, b) => a.localeCompare(b, 'el'));
+
+      let contenido = "";
+      keys.forEach(key => {
+        const val = localStorage.getItem(key);
+        contenido += `${key} : ${val}\n`;
+      });
+
+      const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "diccionario.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function calcularCapacidadColumna() {
+      const altoPantalla = window.innerHeight;
+      const altoDisponible = altoPantalla - 70;
+      const altoLinea = 22;
+      const lineasTotales = Math.floor(altoDisponible / altoLinea);
+      return Math.max(1, lineasTotales - 2);
+    }
+
+    function calcularNumColumnas() {
+      const anchoPantalla = window.innerWidth;
+      if (anchoPantalla < 600) {
+        return 1;
+      }
+      const altoPantalla = window.innerHeight;
+      const altoDisponible = altoPantalla - 70;
+      const anchoColumnaIdeada = altoDisponible / RATIO_AUREO;
+      const cols = Math.floor((anchoPantalla - 20) / anchoColumnaIdeada);
+      return Math.max(1, cols);
+    }
+
+    function renderizarEnlacesLista(arrayKeys) {
+      if (!arrayKeys || arrayKeys.length === 0) return "";
+      return arrayKeys.map(k => `<a href="javascript:saltarAEntrada('${escapeJS(k)}')">${escapeHTML(k)}</a>`).join(" | ");
+    }
+
+    function obtenerHTML() {
+      let html = "";
+
+      html += "<div class=\"top-bar\">";
+      html += "<a href=\"javascript:iniciarNuevaEntrada()\">[+]</a>";
+      if (historialNavegacion.length > 0) {
+        html += "<a href=\"javascript:volverAtras()\">[&lt;] BACK</a>";
+      }
+      html += "<a href=\"javascript:abrirSelectorArchivo()\">[I]</a>";
+      html += "<a href=\"javascript:abrirSelectorDiccionario()\">[D]</a>";
+      html += "<a href=\"javascript:exportarTXT()\">[E]</a>";
+      html += "</div>";
+
+      if (claveEditando !== null) {
+        let valActual = esNuevaEntrada ? "" : (localStorage.getItem(claveEditando) || "");
+        
+        const tienePoet = /@@[\s\S]*?@@/.test(valActual);
+        const tieneIso = /==[\s\S]*?==/.test(valActual);
+        const tieneGlosa = /\+\+[\s\S]*?\+\+/.test(valActual);
+        const tieneNum = /\#\#[\s\S]*?\#\#/.test(valActual);
+
+        if (!tienePoet || !tieneIso || !tieneGlosa || !tieneNum) {
+          valActual = PLANTILLA_DEFAULT;
+        }
+
+        html += "<div class=\"edit-container\">";
+        if (mensajeError) {
+          html += `<div class="error">${escapeHTML(mensajeError)}</div>`;
+        }
+        html += `<input type="text" id="input-key" value="${escapeHTML(claveEditando)}" placeholder="Clave">`;
+        html += `<textarea id="input-val" rows="4">${escapeHTML(valActual)}</textarea>`;
+        html += "<br><a href=\"javascript:guardarEntrada()\">[Guardar]</a> ";
+        html += "<a href=\"javascript:cancelarEdicion()\">[Cancelar]</a>";
+        html += "</div>";
+      }
+
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        keys.push(localStorage.key(i));
+      }
+      keys.sort((a, b) => a.localeCompare(b, 'el'));
+
+      const lineasPorColumna = calcularCapacidadColumna();
+      const numCols = calcularNumColumnas();
+
+      let itemsProcesados = [];
+      keys.forEach(key => {
+        const estaExpandido = (key === claveExpandida);
+        let peso = 1;
+
+        let renderFunc = (k) => {
+          const escK = escapeHTML(k);
+          const jsK = escapeJS(k);
+
+          let itemHtml = `<div class="entry" id="entry-${escK}">`;
+          itemHtml += `<a href="javascript:eliminarEntrada('${jsK}')">[X]</a> `;
+          itemHtml += `<a href="javascript:iniciarEdicion('${jsK}')">[E]</a> `;
+          itemHtml += `<a href="javascript:toggleExpandir('${jsK}')"><span>${escK}</span></a>`;
+
+          if (estaExpandido) {
+            const rawVal = localStorage.getItem(k) || "";
+            const parsed = parsearValue(rawVal);
+            
+            const dynA = cacheCategorias[k] ? cacheCategorias[k].a : [];
+            const dynB = cacheCategorias[k] ? cacheCategorias[k].b : [];
+
+            const renderA = renderizarEnlacesLista(dynA) || escapeHTML(parsed.catA);
+            const renderB = renderizarEnlacesLista(dynB) || escapeHTML(parsed.catB);
+
+            itemHtml += "<div class=\"seccion\">";
+            itemHtml += `<p>${escapeHTML(parsed.poetologico)}</p>`;
+            itemHtml += `<p>${escapeHTML(parsed.isophonos)}</p>`;
+            itemHtml += `<p>${escapeHTML(parsed.glosa)}</p>`;
+            itemHtml += `<p>${escapeHTML(parsed.num)}</p>`;
+            itemHtml += `<p>(( ${renderA} ))</p>`;
+            itemHtml += `<p>}} ${renderB} {{</p>`;
+            itemHtml += "</div>";
+          }
+          itemHtml += "</div>";
+          return itemHtml;
+        };
+
+        if (estaExpandido) {
+          peso += 6;
+        }
+
+        itemsProcesados.push({
+          key: key,
+          peso: peso,
+          html: renderFunc(key)
+        });
+      });
+
+      let columnasPaginadas = [];
+      let colActual = [];
+      let pesoColActual = 0;
+
+      itemsProcesados.forEach(item => {
+        if (pesoColActual + item.peso > lineasPorColumna && colActual.length > 0) {
+          columnasPaginadas.push(colActual);
+          colActual = [];
+          pesoColActual = 0;
+        }
+        colActual.push(item);
+        pesoColActual += item.peso;
+      });
+      if (colActual.length > 0) {
+        columnasPaginadas.push(colActual);
+      }
+
+      let paginas = [];
+      for (let i = 0; i < columnasPaginadas.length; i += numCols) {
+        paginas.push(columnasPaginadas.slice(i, i + numCols));
+      }
+
+      html += "<div class=\"pages-scroll-container\">";
+
+      if (paginas.length === 0) {
+        html += "<div class=\"page-sheet\">";
+        html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
+        for (let c = 0; c < numCols; c++) {
+          html += "<div class=\"column\"></div>";
+        }
+        html += "</div>";
+        html += "</div>";
+      } else {
+        paginas.forEach((colsPagina) => {
+          html += "<div class=\"page-sheet\">";
+          html += `<div class="dictionary-grid" style="grid-template-columns: repeat(${numCols}, 1fr);">`;
+
+          for (let cIdx = 0; cIdx < numCols; cIdx++) {
+            html += "<div class=\"column\">";
+            if (colsPagina[cIdx]) {
+              colsPagina[cIdx].forEach(item => {
+                html += item.html;
+              });
+            }
+            html += "</div>";
+          }
+
+          html += "</div>";
+          html += "</div>";
+        });
+      }
+
+      html += "</div>";
+
+      html += "<input type=\"file\" id=\"input-file-txt\" accept=\".txt\" style=\"display:none;\" onchange=\"importarDesdeArchivo(event)\">";
+      html += "<input type=\"file\" id=\"input-file-json\" accept=\".json,text/plain\" style=\"display:none;\" onchange=\"importarDiccionarioJSON(event)\">";
+
+      return html;
+    }
+
+    window.addEventListener('resize', () => {
+      reRender();
+    });
+
+    // Loading process with simple 3 dots centered screen
+    window.addEventListener('DOMContentLoaded', () => {
+      inicializarDatos();
+
+      setTimeout(() => {
+        calcularCategoriasAB();
+        reRender();
+        
+        const loader = document.getElementById("loading");
+        if (loader) {
+          loader.style.display = "none";
+        }
+      }, 50);
+    });
+  </script>
+
+</body>
+</html>
