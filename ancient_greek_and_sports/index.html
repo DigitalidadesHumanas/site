@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulario de Contacto</title>
+</head>
+<body>
+
+  <h1>APRENDE GRIEGO ANTIGUO HACIENDO DEPORTE</h1>
+  <p>Somos un profesor de idiomas y un entrenador personal evaluando si es viable ofrecer este servicio.</p>
+  <p>Contando visitas a esta web ya nos hacemos una idea, pero si nos comentas tus objetivos, mejor.</p>
+  
+  <div data-fs-success></div>
+  <div data-fs-error></div>
+
+  <form id="my-form">
+    <p>
+      <input type="email" id="email" name="email" value="not-important@abcdefgmail.com" hidden="true" data-fs-field required><br>
+      <span data-fs-error="email"></span>
+    </p>
+
+    <p>
+      <label for="message">¿Qué objetivos te pondrías para estas clases?:</label><br>
+      <textarea id="message" name="message" rows="5" data-fs-field required></textarea><br>
+      <span data-fs-error="message"></span>
+    </p>
+
+    <!-- Verificación anti-spam sin necesidad de clave de Google -->
+    <p>
+      <label for="captcha">Verificación anti-spam: ¿Cuánto es 4 + 3?</label><br>
+      <input type="text" id="captcha" name="captcha" required placeholder="Escribe el resultado"><br>
+      <span id="captcha-error" style="color: red; font-size: 0.9em;"></span>
+    </p>
+
+    <p>
+      <button type="submit" data-fs-submit-btn>Enviar</button>
+    </p>
+  </form>
+
+  <script>
+    window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+    
+    // Validación del reto matemático antes de enviar a Formspree
+    document.getElementById('my-form').addEventListener('submit', function(e) {
+      const answer = document.getElementById('captcha').value.trim();
+      const errorSpan = document.getElementById('captcha-error');
+      
+      if (answer !== '7') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        errorSpan.textContent = 'Resultado incorrecto. Por favor, inténtalo de nuevo.';
+        return false;
+      } else {
+        errorSpan.textContent = '';
+      }
+    });
+
+    formspree('initForm', { formElement: '#my-form', formId: 'mdeonyep' });
+  </script>
+  <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
+
+</body>
+</html>
