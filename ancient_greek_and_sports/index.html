@@ -39,6 +39,19 @@
   </form>
 
   <script>
+            document.addEventListener("DOMContentLoaded", function () {
+            // 1. Parse the URL query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // 2. Retrieve specific parameter values from the URL
+            const emailParam = urlParams.get('location');
+
+            if (emailParam) {
+                document.getElementById('email').value = "location." + emailParam + "@gmail.com";
+            }
+        });
+
+
     window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
     
     // Validación del reto matemático antes de enviar a Formspree
