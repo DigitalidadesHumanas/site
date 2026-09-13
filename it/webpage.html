@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recupera la sencillez y el control de tu ordenador</title>
+  <style>
+    /* Estilos globales */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #ffffff;
+      color: #333333;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      line-height: 1.6;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Título principal */
+    h1 {
+      font-size: 2rem;
+      color: #1a1a1a;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 700;
+    }
+
+    /* Contenedor del vídeo (Responsive 16:9) */
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%; /* Relación de aspecto 16:9 */
+      height: 0;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 35px;
+      background-color: #000;
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Sección de texto */
+    .content {
+      width: 100%;
+    }
+
+    .features-list {
+      list-style-type: none;
+      margin-bottom: 30px;
+    }
+
+    .features-list li {
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 12px;
+      font-size: 1.05rem;
+      color: #4a4a4a;
+    }
+
+    .features-list li::before {
+      content: "•";
+      position: absolute;
+      left: 10px;
+      color: #2563eb;
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    /* Cuadro destacado de la propuesta */
+    .proposal-box {
+      background-color: #f8fafc;
+      border-left: 4px solid #2563eb;
+      padding: 20px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .proposal-box p {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1e293b;
+      letter-spacing: 0.2px;
+    }
+
+    /* Ajustes para pantallas pequeñas */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .features-list li {
+        font-size: 1rem;
+      }
+
+      .proposal-box p {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="container">
+    <!-- Título de la página -->
+    <h1>Recupera la sencillez y el control de tu ordenador</h1>
+
+    <!-- Vídeo de YouTube Centrado y Responsive -->
+    <div class="video-container">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/HPtd4PJ86eM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"  allowfullscreen></iframe>
+    </div>
+
+    <!-- Contenido y texto descriptivo -->
+    <section class="content">
+      <ul class="features-list">
+        <li>No necesitas Microsoft Office para escribir archivos tipo Word in tablas tipo Excel.</li>
+        <li>Microsoft 365 (lanzado en 2020), tal y como viene, no guarda tus documentos en tu ordenador, sino que los guarda en una nube cuyo acceso depende de pagos anuales o mensuales.</li>
+        <li>La mayoría de usuarios que no usan juegos no necesitan un ordenador complicado.</li>
+        <li>La mayoría de ordenadores fabricados en los últimos 10 años son más que aptos para las tareas diarias.</li>
+        <li>La incorporación de la IA en todos los aspectos de los nuevos ordenadores complica el control clásico y favorece despistes.</li>
+      </ul>
+
+      <div class="proposal-box">
+        <p>TE PROPONGO RECUPERAR TU ORDENADOR ANTIGUO PARA USARLO EN FUNCIONES DE OFICINA, CORREO E INTERNET: que vaya rápido, sin pagar licencias y bajo un sistema estable, gratuito y a prueba de virus (Linux).<br> LLÁMAME AL 6123456789</p>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>
